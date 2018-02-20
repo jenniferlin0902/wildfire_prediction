@@ -55,6 +55,7 @@ def preprocess(download_key, base_downalod_path=DEFAULT_DOWNLOAD_PATH, savepath=
 
     return p.run()
 
+
 def download_scene(download_key, savepath_base=DEFAULT_DOWNLOAD_PATH, aws=False):
 	if not os.path.exists(savepath_base):
 		print "Download path {} does not exit".format(savepath_base)
@@ -66,6 +67,7 @@ def download_scene(download_key, savepath_base=DEFAULT_DOWNLOAD_PATH, aws=False)
 	else:
 		os.mkdir(savepath)
 	print "[Download Image] : {}".format(download_key)
+
 	WRS_path = download_key.split("_")[2][:3]
 	WRS_row = download_key.split("_")[2][3:]
 	#collection_number = sceene_id[]
@@ -125,6 +127,7 @@ with open(FIRE_LABEL_FILE, 'r') as f:
 
 	for image in scene_list:
 		preprocess(image)
+
 
 
 
