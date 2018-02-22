@@ -126,9 +126,11 @@ if __name__ == '__main__':
             scene_id, download_key, cloud = get_image_ID(float(lon), float(lat), date)
             if scene_id != -1:
                 if download_key not in meta_fire:
-                    meta_fire[download_key] = {"lon":lon, "lat":lat, "date":date, "scene_id":scene_id, "cloud":cloud, "fires":[fire_id]}
+                    meta_fire[download_key] = {"lons":[lon], "lats":[lat], "date":date, "scene_id":scene_id, "cloud":cloud, "fires":[fire_id]}
                 else:
                     meta_fire[download_key]["fires"].append(fire_id)
+                    meta_fire[download_key]["lons"].append(lon)
+                    meta_fire[download_key]["lats"].append(lat)
                 if download_key not in scene_list:
                     scene_list.append(download_key)
                     count += 1
