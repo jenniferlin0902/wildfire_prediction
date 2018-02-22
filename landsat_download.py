@@ -8,7 +8,7 @@ import argparse
 import json
 import os
 
-FIRE_LABEL_FILE='landsat_fire_last7.csv'
+FIRE_LABEL_FILE='data/landsat_fire_last7.csv'
 DEFAULT_DOWNLOAD_PATH='landsat_download'
 DEFAULT_PROCESSED_PATH='landsat_processed'
 REMOVE_AFTER_PROCESS=False
@@ -118,7 +118,6 @@ if __name__ == '__main__':
         scene_list = []
         count = 0
         for line in f:
-            count += 1
             (fid, area, _1, _2, fire_id, lat, lon, datetime, julian, gmt) = line.split(",")[:-5]
             lon = float(lon)
             lat = float(lat)
@@ -132,24 +131,27 @@ if __name__ == '__main__':
                     meta_fire[download_key]["fires"].append(fire_id)
                 if download_key not in scene_list:
                     scene_list.append(download_key)
+                    count += 1
             else:
                 print "fail to retrieve fire {} with {}".format(fire_id, (lon, lat, date))
             if count > 10:
+                # put a cap on # image to download first
                 break
-        with open(os.path.join(args.download_dir, args.target_csv.strip(".csv") +"_meta.pickle"), 'w') as pickle_f:
+        meta_name_base = os.path.basename(args.target_csv).strip(".csv")
+        with open(os.path.join(args.download_dir,  meta_name_base +"_meta.pickle"), 'w') as pickle_f:
             pickle.dump(meta_fire, pickle_f)
-        with open(os.path.join(args.download_dir, args.target_csv.strip(".csv") + "_scene_lists.pickle"), 'w') as pickle_f:
+        with open(os.path.join(args.download_dir,  meta_name_base + "_scene_lists.pickle"), 'w') as pickle_f:
             pickle.dump(scene_list, pickle_f)
-        with open(os.path.join(args.download_dir,args.target_csv.strip(".csv")+"_meta.json"), 'w') as json_f:
+        with open(os.path.join(args.download_dir, meta_name_base+"_meta.json"), 'w') as json_f:
             json.dump(meta_fire, json_f, indent=4)
-        with open(os.path.join(args.download_dir,args.target_csv.strip(".csv")+"_scene_lists.json"), 'w') as json_f:
+        with open(os.path.join(args.download_dir, meta_name_base+"_scene_lists.json"), 'w') as json_f:
             json.dump(scene_list, json_f, indent=4)
         # now download all scene image
         #exit(1)
         print "====== Start downloading all {} images =====".format(len(scene_list))
         for download_key in scene_list:
-            pass
-            #download_scene(download_key, savepath_base=args.download_dir)
+            #pass
+            download_scene(download_key, savepath_base=args.download_dir)
         print "====== Start preprocessing all {} images =====".format(len(scene_list))
         for download_key in scene_list:
             preprocess(download_key, src_path=os.path.join(args.download_dir, download_key),
