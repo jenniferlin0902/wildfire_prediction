@@ -2,6 +2,82 @@
 
 import tensorflow as tf
 
+VGG_CONFIG = [
+    [
+        {"type":"Conv", "size":3, "filters":64},
+        {"type": "Conv", "size": 3, "filters": 64},
+        {"type": "max", "size": 2},
+    ],
+    [
+        {"type":"Conv", "size":3, "filters":128},
+        {"type": "Conv", "size": 3, "filters": 128},
+        {"type": "max", "size": 2},
+    ],
+    [
+        {"type":"Conv", "size":3, "filters":256},
+        {"type": "Conv", "size": 3, "filters": 256},
+        {"type": "max", "size": 2},
+    ],
+    [
+        {"type": "Conv", "size": 3, "filters": 512},
+        {"type": "Conv", "size": 3, "filters": 512},
+        {"type": "Conv", "size": 3, "filters": 512},
+        {"type": "max", "size": 2},
+    ],
+    [
+        {"type": "Flat"},
+        {"type": "Fc", "size": 4096},
+        {"type": "Fc", "size": 4096}
+    ],
+]
+
+# TODO add bn layer to VGG net
+def build_VGG(is_training, inputs, params):
+    network_configs = VGG_CONFIG;
+    for i, block in enumerate(network_configs):
+        for network in block:
+            with tf.variable_scope("block_{}".format(i+1)):
+                if network["type"] == "Conv":
+                    # use ReLU and xavier_initializer by default
+                    out = tf.contrib.layers.conv2d(out, network["filters"], network["size"], padding='same')
+                elif network["type"] == "Max":
+                    out = tf.layers.max_pooling2d(out, (network["size"], network["size"]))
+                elif network["type"] == "Fc":
+                    # use relu by default
+                    out = tf.contrib.layers.fully_connected(out, network["size"])
+                elif network["type"] == "Flat":
+                    out = tf.contrib.layers.flatten(out)
+                else:
+                    raise "Invalid NN type arguement"
+    return out
+
+def build_simple(is_training, inputs, params):
+    num_channels = params.num_channels
+    bn_momentum = params.bn_momentum
+    # Define the number of channels of each convolution
+    # For each block, we do: 3x3 conv -> batch norm -> relu -> 2x2 maxpool
+    channels = [num_channels, num_channels * 2, num_channels * 4, num_channels * 8]
+    for i, c in enumerate(channels):
+        with tf.variable_scope('block_{}'.format(i+1)):
+            out = tf.layers.conv2d(out, c, 3, padding='same')
+            if params.use_batch_norm:
+                out = tf.layers.batch_normalization(out, momentum=bn_momentum, training=is_training)
+            out = tf.nn.relu(out)
+            out = tf.layers.max_pooling2d(out, 2, 2)
+
+    #print out.get_shape().as_list()
+    #assert out.get_shape().as_list() == [None, 4, 4, num_channels * 8]
+
+
+    # TODO change 18*18 to some none hardcoded number?
+    out = tf.reshape(out, [-1, 18 * 18 * num_channels * 8])
+    with tf.variable_scope('fc_1'):
+        out = tf.layers.dense(out, num_channels * 8)
+        if params.use_batch_norm:
+            out = tf.layers.batch_normalization(out, momentum=bn_momentum, training=is_training)
+        out = tf.nn.relu(out)
+    return out
+
 
 def build_model(is_training, inputs, params):
     """Compute logits of the model (output distribution)
@@ -20,28 +96,13 @@ def build_model(is_training, inputs, params):
     assert images.get_shape().as_list() == [None, params.image_size, params.image_size, 3]
 
     out = images
-    # Define the number of channels of each convolution
-    # For each block, we do: 3x3 conv -> batch norm -> relu -> 2x2 maxpool
-    num_channels = params.num_channels
-    bn_momentum = params.bn_momentum
-    channels = [num_channels, num_channels * 2, num_channels * 4, num_channels * 8]
-    for i, c in enumerate(channels):
-        with tf.variable_scope('block_{}'.format(i+1)):
-            out = tf.layers.conv2d(out, c, 3, padding='same')
-            if params.use_batch_norm:
-                out = tf.layers.batch_normalization(out, momentum=bn_momentum, training=is_training)
-            out = tf.nn.relu(out)
-            out = tf.layers.max_pooling2d(out, 2, 2)
+    build_vgg = False
+    if build_vgg:
+        out = build_VGG(is_training, inputs, params)
+    else:
+        out = build_simple(is_training, inputs, params)
 
-    assert out.get_shape().as_list() == [None, 4, 4, num_channels * 8]
-
-    out = tf.reshape(out, [-1, 4 * 4 * num_channels * 8])
-    with tf.variable_scope('fc_1'):
-        out = tf.layers.dense(out, num_channels * 8)
-        if params.use_batch_norm:
-            out = tf.layers.batch_normalization(out, momentum=bn_momentum, training=is_training)
-        out = tf.nn.relu(out)
-    with tf.variable_scope('fc_2'):
+    with tf.variable_scope('output'):
         logits = tf.layers.dense(out, params.num_labels)
 
     return logits
