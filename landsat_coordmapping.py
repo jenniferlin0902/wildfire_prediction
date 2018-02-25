@@ -60,7 +60,7 @@ def find_corner_coords(filename):
             ll_lat = float(lines[i+4].split('=')[1].strip())
             ll_lon = float(lines[i+5].split('=')[1].strip())
             lr_lat = float(lines[i+6].split('=')[1].strip())
-            lr_lon = float(lines[i+6].split('=')[1].strip())
+            lr_lon = float(lines[i+7].split('=')[1].strip())
             break
 
     coords = {'ul_lat': ul_lat, 'ul_lon': ul_lon, 'ur_lat': ur_lat, 'ur_lon': ur_lon,
@@ -69,8 +69,8 @@ def find_corner_coords(filename):
     return coords
 
 def map_fires(image, coords, filename, label, mini_size):
-    data = np.asarray(image)
-    num_across = min(data.shape[0], data.shape[1])/mini_size
+    im_data = np.asarray(image)
+    num_across = min(im_data.shape[0], im_data.shape[1])/mini_size
     is_fire = np.zeros((num_across * num_across))
 
     with open(filename) as f:
@@ -96,11 +96,11 @@ def map_fires(image, coords, filename, label, mini_size):
     return is_fire
 
 def image_blocks(image, label, is_fire, mini_size):
-    data = np.asarray(image)
+    im_data = np.asarray(image)
     size = (mini_size, mini_size)
 
     # number of mini images that can fit in one dimension
-    num_across = min(data.shape[0], data.shape[1])/mini_size
+    num_across = min(im_data.shape[0], im_data.shape[1])/mini_size
 
     # crop dimensions (left, upper, right, lower) 
     for i in range(num_across):
