@@ -1,29 +1,39 @@
 """Create the input data pipeline using `tf.data`"""
 
 import tensorflow as tf
+from utils import is_fire
 
 
-def _parse_function(filename, label, size):
+#RGB_FILE_EXT = ".jpg"
+INFRARED_FILE_EXT = "_B7.jpg"
+
+
+
+def _parse_function(filename_id, labels, size):
     """Obtain the image from the filename (for both training and validation).
 
     The following operations are applied:
         - Decode the image from jpeg format
         - Convert to float and to range [0, 1]
     """
-    image_string = tf.read_file(filename)
+    #rgb_image_string=filename_id
+    #print rgb_image_string
+    #rgb_image_string = tf.read_file(filename_id)
+    #infrared_image_string = tf.read_file(filename_id + INFRARED_FILE_EXT)
 
     # Don't use tf.image.decode_image, or the output shape will be undefined
-    image_decoded = tf.image.decode_jpeg(image_string, channels=3)
+    #rgb_image_decoded = tf.image.decode_jpeg(rgb_image_string, channels=3)
+    #infrared_image_decoded = tf.image.decode_jpeg(infrared_image_string, channels=1)
 
-    # This will convert to float values in [0, 1]
-    image = tf.image.convert_image_dtype(image_decoded, tf.float32)
+    #image_decoded = tf.concat([rgb_image_decoded], axis=2)
+    #image = tf.image.convert_image_dtype(image_decoded, tf.float32)
+    #resized_image = tf.image.resize_images(image, [size, size])
+    #print filename_id
+    image = np.load(filename_id)
+    return image, labels
 
-    resized_image = tf.image.resize_images(image, [size, size])
-
-    return resized_image, label
-
-
-def train_preprocess(image, label, use_random_flip):
+#TODO check if this is needed
+def train_preprocess(image, labels, use_random_flip):
     """Image preprocessing for training.
 
     Apply the following operations:
@@ -38,8 +48,8 @@ def train_preprocess(image, label, use_random_flip):
 
     # Make sure the image is still in [0, 1]
     image = tf.clip_by_value(image, 0.0, 1.0)
-
-    return image, label
+    #print image
+    return image, labels
 
 
 def input_fn(is_training, filenames, labels, params):
@@ -56,12 +66,11 @@ def input_fn(is_training, filenames, labels, params):
         params: (Params) contains hyperparameters of the model (ex: `params.num_epochs`)
     """
     num_samples = len(filenames)
-    assert len(filenames) == len(labels), "Filenames and labels should have same length"
 
     # Create a Dataset serving batches of images and labels
     # We don't repeat for multiple epochs because we always train and evaluate for one epoch
     parse_fn = lambda f, l: _parse_function(f, l, params.image_size)
-    train_fn = lambda f, l: train_preprocess(f, l, params.use_random_flip)
+    train_fn = lambda f, l: train_preprocess(f,l, params.use_random_flip)
 
     if is_training:
         dataset = (tf.data.Dataset.from_tensor_slices((tf.constant(filenames), tf.constant(labels)))
