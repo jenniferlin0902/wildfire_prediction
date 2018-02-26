@@ -12,8 +12,10 @@ import matplotlib.pyplot as plt
 import cv2
 from scipy import misc
 
-FIRE_LABEL_FILE='data/landsat_fire_last7.csv'
+FIRE_LABEL_FILE='data/landsat_fire_2017.csv'
 BASE = "/Volumes/DRIVE/"
+# for testing:
+#BASE = '' 
 DEFAULT_DOWNLOAD_PATH=os.path.join(BASE,'landsat_download')
 OUPUT_PATH=os.path.join(BASE,"landsat_cropped")
 
@@ -144,6 +146,36 @@ def image_blocks_with_ir(image, ir_image, label, is_fire, mini_size):
             outfile_name = os.path.join(OUPUT_PATH, outfile_name)
             np.save(outfile_name, final_array)
 
+# outputs .npy file instead of jpeg; to open use np.load('')
+def image_blocks_with_bands(b2_image, b3_image, b4_image, ir_image, label, is_fire, mini_size):
+    data = np.asarray(b2_image)
+    size = (mini_size, mini_size)
+    # number of mini images that can fit in one dimension
+    num_across = min(data.shape[0], data.shape[1])/mini_size
+
+    # crop dimensions (left, upper, right, lower)
+    for i in range(num_across):
+        for j in range(num_across):
+            temp_b2 = b2_image.crop((i * mini_size, j * mini_size, (i+1) * mini_size, (j+1) * mini_size))
+            temp_b3 = b3_image.crop((i * mini_size, j * mini_size, (i+1) * mini_size, (j+1) * mini_size))
+            temp_b4 = b4_image.crop((i * mini_size, j * mini_size, (i+1) * mini_size, (j+1) * mini_size))
+            temp_ir = ir_image.crop((i * mini_size, j * mini_size, (i+1) * mini_size, (j+1) * mini_size))
+
+            temp_b2_data = np.asarray(temp_b2)
+            temp_b3_data = np.asarray(temp_b3)
+            temp_b4_data = np.asarray(temp_b4)
+            temp_ir_data = np.asarray(temp_ir)
+
+            # fire_label: 0 for no fire, 1 for fire
+            outfile_name = label + '_' + str(i*num_across + j) + '_' + str(int(is_fire[i*num_across + j]))
+            print outfile_name
+
+            #final_array = np.concatenate((temp_data, temp_ir_data.reshape(mini_size, mini_size, 1)), axis = 2)
+            final_array = np.stack((temp_b2_data, temp_b3_data, temp_b4_data, temp_ir_data)).reshape((mini_size, mini_size,4))
+            print final_array.shape
+            outfile_name = os.path.join(OUPUT_PATH, outfile_name)
+            np.save(outfile_name, final_array)
+
 
 def plot_fires(irimage, coords, filename):
     # latidue goes up down, index 0
@@ -172,12 +204,12 @@ if __name__ == '__main__':
     #image_list_path = os.path.join(FIRE_LABEL_FILE)
     #print "opening {}".format(FIRE_LABEL_FILE)
 
-    #image_list = [
-    #	"LC08_L1TP_032026_20180221_20180221_01_RT",
-#		"LC08_L1TP_030026_20180223_20180223_01_RT",
-#		"LC08_L1TP_030025_20180223_20180223_01_RT",
-#		"LC08_L1TP_036026_20180217_20180217_01_RT"
-#	]
+    '''image_list = [
+    	"LC08_L1TP_032026_20180221_20180221_01_RT",
+		"LC08_L1TP_030026_20180223_20180223_01_RT",
+		"LC08_L1TP_030025_20180223_20180223_01_RT",
+		"LC08_L1TP_036026_20180217_20180217_01_RT"
+	]'''
     image_list_path = os.path.join(DEFAULT_DOWNLOAD_PATH, "landsat_fire_2017_scene_lists.json")
     meta_list_path = os.path.join(DEFAULT_DOWNLOAD_PATH, "landsat_fire_2017_meta.json")
     with open(image_list_path, 'r') as image_list_f:
@@ -189,29 +221,46 @@ if __name__ == '__main__':
         #label = 'LC08_L1TP_027033_20180218_20180218_01_RT'
         #label = 'LC08_L1TP_045033_20180216_20180216_01_RT'
         print "Cropping image {}".format(label)
+
         image_dir = os.path.join(images_base, label)
-        irimage_input = os.path.join(image_dir, label + '_B7.TIF')
-        processedimage_input = os.path.join(os.path.join(image_dir, label), label + '_bands_234.TIF')
+
+        ir_image_input = os.path.join(image_dir, label + '_B7.TIF')
+        b2_image_input = os.path.join(image_dir, label + '_B2.TIF')
+        b3_image_input = os.path.join(image_dir, label + '_B3.TIF')
+        b4_image_input = os.path.join(image_dir, label + '_B4.TIF')
+
+        #processedimage_input = os.path.join(os.path.join(image_dir, label), label + '_bands_234.TIF')
         coordfile = os.path.join(image_dir, label + '_MTL.txt')
-        if not (os.path.exists(image_dir) and os.path.exists(processedimage_input) and os.path.exists(coordfile)):
+
+        if not (os.path.exists(image_dir) and os.path.exists(b2_image_input) and os.path.exists(b3_image_input) \
+            and os.path.exists(b4_image_input) and os.path.exists(ir_image_input) and os.path.exists(coordfile)):
             print "Image directory or file {} does not exist".format(image_dir)
             continue
 
-        im = Image.open(processedimage_input)
-        image = straighten_image(im)
+        '''im = Image.open(processedimage_input)
+        image = straighten_image(im)'''
+
         coords = find_corner_coords(coordfile)
 
-        ir_im = cv2.imread(irimage_input, 0)
+        ir_im = cv2.imread(ir_image_input, 0)
         ir_image = straighten_image(Image.fromarray(ir_im))
+        b2_im = cv2.imread(b2_image_input, 0)
+        b2_image = straighten_image(Image.fromarray(b2_im))
+        b3_im = cv2.imread(b3_image_input, 0)
+        b3_image = straighten_image(Image.fromarray(b3_im))
+        b4_im = cv2.imread(b4_image_input, 0)
+        b4_image = straighten_image(Image.fromarray(b4_im))
 
         #plot_fires(ir_pillow_image, coords, firefile)
 
         # returns an array: index corresponds to label of mini image
         # 0 for no fire, 1 for fire
-        is_fire = map_fires(image, coords, meta_list_path, label, mini_size)
+        # feeding in b2 since all same dimensions anyways
+        is_fire = map_fires(b2_image, coords, meta_list_path, label, mini_size)
 
         #image_blocks(image, label, is_fire, mini_size)
-        image_blocks_with_ir(image, ir_image, label, is_fire, mini_size)
+        #image_blocks_with_ir(image,ir_image, label, is_fire, mini_size)
+        image_blocks_with_bands(b2_image, b3_image, b4_image, ir_image, label, is_fire, mini_size)
 
         # remove the break'''
         #break
