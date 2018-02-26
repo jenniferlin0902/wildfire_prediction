@@ -13,11 +13,11 @@ import cv2
 from scipy import misc
 
 FIRE_LABEL_FILE='data/landsat_fire_2017.csv'
-BASE = "/Volumes/DRIVE/"
+BASE = "/Volumes/Transcend/"
 # for testing:
 #BASE = '' 
 DEFAULT_DOWNLOAD_PATH=os.path.join(BASE,'landsat_download')
-OUPUT_PATH=os.path.join(BASE,"landsat_cropped")
+OUPUT_PATH=os.path.join(BASE,"landsat_cropped_ones")
 
 # sorry, hardcoded & hopefully only called once (angle = 14) 
 def find_rotation_angle(data):
@@ -116,6 +116,8 @@ def image_blocks(image, label, is_fire, mini_size):
     for i in range(num_across):
         for j in range(num_across):
             temp = image.crop((i * mini_size, j * mini_size, (i+1) * mini_size, (j+1) * mini_size))
+
+
             # fire_label: 0 for no fire, 1 for fire
             outfile_name = label + '_' + str(i*num_across + j) + '_' + str(int(is_fire[i*num_across + j])) + '.jpg'
             print outfile_name
@@ -156,25 +158,34 @@ def image_blocks_with_bands(b2_image, b3_image, b4_image, ir_image, label, is_fi
     # crop dimensions (left, upper, right, lower)
     for i in range(num_across):
         for j in range(num_across):
-            temp_b2 = b2_image.crop((i * mini_size, j * mini_size, (i+1) * mini_size, (j+1) * mini_size))
-            temp_b3 = b3_image.crop((i * mini_size, j * mini_size, (i+1) * mini_size, (j+1) * mini_size))
-            temp_b4 = b4_image.crop((i * mini_size, j * mini_size, (i+1) * mini_size, (j+1) * mini_size))
-            temp_ir = ir_image.crop((i * mini_size, j * mini_size, (i+1) * mini_size, (j+1) * mini_size))
+            if (int(is_fire[i*num_across + j]) == 1):
+                temp_b2 = b2_image.crop((i * mini_size, j * mini_size, (i+1) * mini_size, (j+1) * mini_size))
+                temp_b3 = b3_image.crop((i * mini_size, j * mini_size, (i+1) * mini_size, (j+1) * mini_size))
+                temp_b4 = b4_image.crop((i * mini_size, j * mini_size, (i+1) * mini_size, (j+1) * mini_size))
+                temp_ir = ir_image.crop((i * mini_size, j * mini_size, (i+1) * mini_size, (j+1) * mini_size))
 
-            temp_b2_data = np.asarray(temp_b2)
-            temp_b3_data = np.asarray(temp_b3)
-            temp_b4_data = np.asarray(temp_b4)
-            temp_ir_data = np.asarray(temp_ir)
+                temp_b2_data = np.asarray(temp_b2)
+                temp_b3_data = np.asarray(temp_b3)
+                temp_b4_data = np.asarray(temp_b4)
+                temp_ir_data = np.asarray(temp_ir)
 
-            # fire_label: 0 for no fire, 1 for fire
-            outfile_name = label + '_' + str(i*num_across + j) + '_' + str(int(is_fire[i*num_across + j]))
-            print outfile_name
+                # fire_label: 0 for no fire, 1 for fire
 
-            #final_array = np.concatenate((temp_data, temp_ir_data.reshape(mini_size, mini_size, 1)), axis = 2)
-            final_array = np.stack((temp_b2_data, temp_b3_data, temp_b4_data, temp_ir_data)).reshape((mini_size, mini_size,4))
-            print final_array.shape
-            outfile_name = os.path.join(OUPUT_PATH, outfile_name)
-            np.save(outfile_name, final_array)
+                outfile_name = label + '_' + str(i*num_across + j) + '_' + str(int(is_fire[i*num_across + j]))
+                print outfile_name
+
+                final_array = np.concatenate((temp_b4_data.reshape(mini_size, mini_size, 1), temp_b3_data.reshape(mini_size, mini_size, 1)), axis = 2)
+                final_array = np.concatenate((final_array, temp_b2_data.reshape(mini_size, mini_size, 1)), axis = 2)
+
+                # add line below for ir
+                final_array = np.concatenate((final_array, temp_ir_data.reshape(mini_size, mini_size, 1)), axis = 2)
+
+                #final_array = np.concatenate((temp_data, temp_ir_data.reshape(mini_size, mini_size, 1)), axis = 2)
+                # below: wrong
+                #final_array = np.stack((temp_b2_data, temp_b3_data, temp_b4_data, temp_ir_data)).reshape((mini_size, mini_size,4))
+                print final_array.shape
+                outfile_name = os.path.join(OUPUT_PATH, outfile_name)
+                np.save(outfile_name, final_array)
 
 
 def plot_fires(irimage, coords, filename):
@@ -216,7 +227,8 @@ if __name__ == '__main__':
         image_list = json.load(image_list_f)
     mini_size = 300
     images_base = DEFAULT_DOWNLOAD_PATH
-    for label in image_list:
+    start_index = 127
+    for label in image_list[start_index:]:
         # remove the label
         #label = 'LC08_L1TP_027033_20180218_20180218_01_RT'
         #label = 'LC08_L1TP_045033_20180216_20180216_01_RT'
