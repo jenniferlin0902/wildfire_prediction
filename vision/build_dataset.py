@@ -30,7 +30,7 @@ import shutil
 SIZE = 64
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--data_dir', default='/Volumes/DRIVE/landsat_cropped/', help="Directory with the SIGNS dataset")
+parser.add_argument('--data_dir', default='/Volumes/Transcend/landsat_cropped/', help="Directory with the SIGNS dataset")
 parser.add_argument('--output_dir', default='data/', help="Where to write the new data")
 
 
@@ -61,37 +61,31 @@ if __name__ == '__main__':
 
     # Get the filenames in each directory (train and test)
     filenames = [f for f in os.listdir(data_dir) if f.endswith('.npy')]
-
     no_fire_files = []
     fire_files = []
 
     for f in filenames:
-        print f
         if is_fire(os.path.basename(f)):
             fire_files.append(f)
         else:
             no_fire_files.append(f)
     print "found {} fire, {} no fire".format(len(fire_files), len(no_fire_files))
-    src_filenames = fire_files + random.sample(no_fire_files, len(fire_files)*3)
+    src_filenames = fire_files + random.sample(no_fire_files, len(fire_files))
 
-    # Split the images in 'train_signs' into 80% train and 20% dev
+    # Split the images in 'train_signs' into 80% train and 10% dev, 10% test
     # Make sure to always shuffle with a fixed seed so that the split is reproducible
     random.seed(230)
     src_filenames.sort()
     random.shuffle(src_filenames)
-    print "Splitting {} src files".format(len(src_filenames))
 
     split = [int(0.80*len(src_filenames)), int(0.90*len(src_filenames))] # train, dev, test
-    print split
-    print data_dir
-    print train_dir
+    print "Splitting {} src files into {}".format(len(src_filenames), split)
     for f in src_filenames[:split[0]]:
-        print f
-        shutil.move(os.path.join(data_dir, f), os.path.join(train_dir, f))
+        shutil.copy(os.path.join(data_dir, f), os.path.join(train_dir))
     for f in src_filenames[split[0]:split[1]]:
-        shutil.move(os.path.join(data_dir, f), os.path.join(dev_dir, f))
+        shutil.copy(os.path.join(data_dir, f), os.path.join(dev_dir))
     for f in src_filenames[split[1]:]:
-        shutil.move(os.path.join(data_dir, f), os.path.join(test_dir, f))
+        shutil.copy(os.path.join(data_dir, f), os.path.join(test_dir, f))
 
     '''
     filenames = {'train': train_filenames,
