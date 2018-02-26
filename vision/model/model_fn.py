@@ -56,6 +56,7 @@ def build_simple(is_training, inputs, params):
     bn_momentum = params.bn_momentum
     # Define the number of channels of each convolution
     # For each block, we do: 3x3 conv -> batch norm -> relu -> 2x2 maxpool
+    out = inputs
     channels = [num_channels, num_channels * 2, num_channels * 4, num_channels * 8]
     for i, c in enumerate(channels):
         with tf.variable_scope('block_{}'.format(i+1)):
@@ -98,9 +99,9 @@ def build_model(is_training, inputs, params):
     out = images
     build_vgg = False
     if build_vgg:
-        out = build_VGG(is_training, inputs, params)
+        out = build_VGG(is_training, images, params)
     else:
-        out = build_simple(is_training, inputs, params)
+        out = build_simple(is_training, images, params)
 
     with tf.variable_scope('output'):
         logits = tf.layers.dense(out, params.num_labels)
