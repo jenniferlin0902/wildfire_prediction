@@ -13,9 +13,9 @@ import cv2
 from scipy import misc
 
 FIRE_LABEL_FILE='data/landsat_fire_2017.csv'
-#BASE = "/Volumes/DRIVE/"
+BASE = "/Volumes/Transcend/"
 # for testing:
-BASE = '' 
+#BASE = '' 
 DEFAULT_DOWNLOAD_PATH=os.path.join(BASE,'landsat_download')
 OUPUT_PATH=os.path.join(BASE,"landsat_cropped_ones")
 
