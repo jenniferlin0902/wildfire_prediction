@@ -1,7 +1,7 @@
 {
     "learning_rate": 1e-3,
-    "batch_size": 10,
-    "num_epochs": 10,
+    "batch_size": 100,
+    "num_epochs": 20,
 
     "num_channels": 4,
     "use_batch_norm": true,
