@@ -60,7 +60,7 @@ if __name__ == '__main__':
     # Labels will be between 0 and 5 included (6 classes in total)
     train_labels = [is_fire(os.path.basename(f)) for f in train_filenames]
     eval_labels = [is_fire(os.path.basename(f)) for f in eval_filenames]
-    print eval_labels
+
     # Specify the sizes of the dataset we train on and evaluate on
     params.train_size = len(train_filenames)
     params.eval_size = len(eval_filenames)
@@ -71,6 +71,7 @@ if __name__ == '__main__':
 
     # Define the model
     logging.info("Creating the model...")
+    logging.info("Start training with {} data, evaluating with {} data".format(len(train_filenames), len(eval_filenames)))
     train_model_spec = model_fn('train', train_inputs, params)
     eval_model_spec = model_fn('eval', eval_inputs, params, reuse=True)
 
