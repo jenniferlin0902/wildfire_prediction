@@ -2,35 +2,28 @@
 
 import tensorflow as tf
 from utils import is_fire
-
+import numpy as np
 
 #RGB_FILE_EXT = ".jpg"
 INFRARED_FILE_EXT = "_B7.jpg"
 
-
-
-def _parse_function(filename_id, labels, size):
+def _parse_function(filename, label, size):
     """Obtain the image from the filename (for both training and validation).
-
     The following operations are applied:
         - Decode the image from jpeg format
         - Convert to float and to range [0, 1]
     """
-    #rgb_image_string=filename_id
-    #print rgb_image_string
-    #rgb_image_string = tf.read_file(filename_id)
-    #infrared_image_string = tf.read_file(filename_id + INFRARED_FILE_EXT)
+    image_string = tf.read_file(filename)
 
     # Don't use tf.image.decode_image, or the output shape will be undefined
-    #rgb_image_decoded = tf.image.decode_jpeg(rgb_image_string, channels=3)
-    #infrared_image_decoded = tf.image.decode_jpeg(infrared_image_string, channels=1)
+    image_decoded = tf.image.decode_jpeg(image_string, channels=3)
 
-    #image_decoded = tf.concat([rgb_image_decoded], axis=2)
-    #image = tf.image.convert_image_dtype(image_decoded, tf.float32)
-    #resized_image = tf.image.resize_images(image, [size, size])
-    #print filename_id
-    image = np.load(filename_id)
-    return image, labels
+    # This will convert to float values in [0, 1]
+    image = tf.image.convert_image_dtype(image_decoded, tf.float32)
+
+    resized_image = tf.image.resize_images(image, [size, size])
+
+    return resized_image, label
 
 #TODO check if this is needed
 def train_preprocess(image, labels, use_random_flip):
@@ -76,7 +69,7 @@ def input_fn(is_training, filenames, labels, params):
         dataset = (tf.data.Dataset.from_tensor_slices((tf.constant(filenames), tf.constant(labels)))
             .shuffle(num_samples)  # whole dataset into the buffer ensures good shuffling
             .map(parse_fn, num_parallel_calls=params.num_parallel_calls)
-            .map(train_fn, num_parallel_calls=params.num_parallel_calls)
+            #.map(train_fn, num_parallel_calls=params.num_parallel_calls)
             .batch(params.batch_size)
             .prefetch(1)  # make sure you always have one batch ready to serve
         )
