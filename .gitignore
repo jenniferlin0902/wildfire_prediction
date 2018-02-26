@@ -1,2 +1,4 @@
 downloads/
 landsat_download/*
+vision/data/*.jpg
+vision/data/*.npy
