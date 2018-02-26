@@ -66,12 +66,13 @@ if __name__ == '__main__':
     fire_files = []
 
     for f in filenames:
+        print f
         if is_fire(os.path.basename(f)):
             fire_files.append(f)
         else:
             no_fire_files.append(f)
     print "found {} fire, {} no fire".format(len(fire_files), len(no_fire_files))
-    src_filenames = fire_files + random.sample(no_fire_files, len(fire_files))
+    src_filenames = fire_files + random.sample(no_fire_files, len(fire_files)*3)
 
     # Split the images in 'train_signs' into 80% train and 20% dev
     # Make sure to always shuffle with a fixed seed so that the split is reproducible
