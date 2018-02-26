@@ -1,3 +1,6 @@
+*.pyc
+data/*.jpg
+data/*.npy
 downloads/
 landsat_download/*
 vision/data/*.jpg
