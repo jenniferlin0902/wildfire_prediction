@@ -6,45 +6,37 @@ VGG_CONFIG = [
     [
         {"type":"Conv", "size":3, "filters":64},
         {"type": "Conv", "size": 3, "filters": 64},
-        {"type": "max", "size": 2},
+        {"type": "Max", "size": 3},
     ],
     [
         {"type":"Conv", "size":3, "filters":128},
+        {"type": "Max", "size": 2},
+    ],
+    [
         {"type": "Conv", "size": 3, "filters": 128},
-        {"type": "max", "size": 2},
-    ],
-    [
-        {"type":"Conv", "size":3, "filters":256},
-        {"type": "Conv", "size": 3, "filters": 256},
-        {"type": "max", "size": 2},
-    ],
-    [
-        {"type": "Conv", "size": 3, "filters": 512},
-        {"type": "Conv", "size": 3, "filters": 512},
-        {"type": "Conv", "size": 3, "filters": 512},
-        {"type": "max", "size": 2},
+        {"type": "Max", "size": 2},
     ],
     [
         {"type": "Flat"},
-        {"type": "Fc", "size": 4096},
-        {"type": "Fc", "size": 4096}
+        {"type": "Fc", "size": 2048}
     ],
 ]
 
 # TODO add bn layer to VGG net
 def build_VGG(is_training, inputs, params):
-    network_configs = VGG_CONFIG;
+    network_configs = VGG_CONFIG
+    out = inputs
     for i, block in enumerate(network_configs):
-        for network in block:
+        for j, network in enumerate(block):
             with tf.variable_scope("block_{}".format(i+1)):
                 if network["type"] == "Conv":
                     # use ReLU and xavier_initializer by default
-                    out = tf.contrib.layers.conv2d(out, network["filters"], network["size"], padding='same')
+                    out = tf.contrib.layers.conv2d(out, network["filters"], network["size"], padding='same', scope="network_{}".format(j))
                 elif network["type"] == "Max":
-                    out = tf.layers.max_pooling2d(out, (network["size"], network["size"]))
+                    out = tf.layers.max_pooling2d(out, network["size"], network["size"])
                 elif network["type"] == "Fc":
                     # use relu by default
-                    out = tf.contrib.layers.fully_connected(out, network["size"])
+                    out = tf.contrib.layers.fully_connected(out, network["size"],scope="network_{}".format(j))
                 elif network["type"] == "Flat":
                     out = tf.contrib.layers.flatten(out)
                 else:
@@ -60,18 +52,17 @@ def build_simple(is_training, inputs, params):
     channels = [num_channels, num_channels * 2, num_channels * 4, num_channels * 8]
     for i, c in enumerate(channels):
         with tf.variable_scope('block_{}'.format(i+1)):
-            out = tf.layers.conv2d(out, c, 3, padding='same')
+            out = tf.layers.conv2d(out, c, params.kernel_size(), padding='same')
             if params.use_batch_norm:
                 out = tf.layers.batch_normalization(out, momentum=bn_momentum, training=is_training)
             out = tf.nn.relu(out)
             out = tf.layers.max_pooling2d(out, 2, 2)
 
-    #print out.get_shape().as_list()
     #assert out.get_shape().as_list() == [None, 4, 4, num_channels * 8]
 
 
-    # TODO change 18*18 to some none hardcoded number?
-    out = tf.reshape(out, [-1, 18 * 18 * num_channels * 8])
+    # TODO change 18*18 to some none hardcoded number
+    out = tf.contrib.layers.flatten(out, scope="flatten_1")
     with tf.variable_scope('fc_1'):
         out = tf.layers.dense(out, num_channels * 8)
         if params.use_batch_norm:
@@ -98,7 +89,7 @@ def build_model(is_training, inputs, params):
 
     out = images
     build_vgg = False
-    if build_vgg:
+    if params.use_vgg:
         out = build_VGG(is_training, images, params)
     else:
         out = build_simple(is_training, images, params)
