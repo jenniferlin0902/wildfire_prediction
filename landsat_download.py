@@ -9,10 +9,10 @@ import json
 import os
 import datetime
 
-FIRE_LABEL_FILE='data/landsat_fire_2016.csv'
-BASE = "/Volumes/Transcend"
-DEFAULT_DOWNLOAD_PATH=os.path.join(BASE,'landsat_download_2016')
-DEFAULT_PROCESSED_PATH=os.path.join(BASE,'landsat_processed_2016')
+FIRE_LABEL_FILE='data/landsat_fire_2017.csv'
+BASE = "/Volumes/Transcend/"
+DEFAULT_DOWNLOAD_PATH=os.path.join(BASE,'landsat_download_2017')
+DEFAULT_PROCESSED_PATH=os.path.join(BASE,'landsat_processed_2017')
 REMOVE_AFTER_PROCESS=False
 DOWNLOAD_BANDS=[1,2,3,4,5,6,7]
 DOWNLOAD_ADDITIONAL_FILES=["_BQA.TIF", "_MTL.txt"]
@@ -20,7 +20,7 @@ DOWNLOAD_BASE_URL='https://landsat-pds.s3.amazonaws.com/c1/L8'
 DOWNLOAD_PRE_COLLECTION_BASE_URL='https://landsat-pds.s3.amazonaws.com/L8'
 CLOUD_FILTER=30
 GEO_FENCE = [-66.951381, -124.7844079, 24.7433195, 49.3457868] #lon, lat
-DOWNLOAD_ONLY = True
+DOWNLOAD_ONLY = False
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--target_csv', default=FIRE_LABEL_FILE, help="Fire label file")
@@ -59,12 +59,10 @@ def get_image_ID(lon, lat, start_date, end_date=None, cloud_threshold=99):
     try:
         for r in result["results"]:
             # chose the lowest cloud coverage
-            if r['cloud'] < cloud_threshold and r['cloud'] < min_cloud:
+            if r['cloud'] < cloud_threshold and r['cloud'] < min_cloud and not r['thumbnail'].split("/")[8].split(".")[0].endswith("T2"):
                 scene_id = r['sceneID']
                 # extract download key from thumbnail url
                 download_key = r['thumbnail'].split("/")[8].split(".")[0]
-                if download_key.endswith("T2"):
-                    continue
                 cloud = r['cloud']
                 min_cloud = cloud
                 fire_date = r['date']
@@ -107,11 +105,11 @@ def preprocess(download_key, src_path=DEFAULT_DOWNLOAD_PATH, dst_path=DEFAULT_PR
 def download_scene(download_key, savepath_base=DEFAULT_DOWNLOAD_PATH, aws=False, pre_collection = False):
     if not os.path.exists(savepath_base):
         print "Download path {} does not exit".format(savepath_base)
-        #exit(1)
+        exit(1)
     # start downloading
     savepath = os.path.join(savepath_base, download_key)
     if os.path.exists(savepath):
-        print "Download directory for {} already exists!".format(savepath)
+        print "Download directory for {} already exists!, skip download".format(savepath)
         return
     else:
         os.mkdir(savepath)
@@ -181,29 +179,28 @@ def process_csv(csv_file, log_dir):
                 continue
             try:
                 date = raw_date.split()[0].split("/")
-                start_date = datetime.datetime(int(date[2]), int(date[0]), int(date[1]))
-                end_date = start_date + datetime.timedelta(days=1) * 17
+                fire_date = datetime.datetime(int(date[2]), int(date[0]), int(date[1]))
+                start_date = fire_date - datetime.timedelta(days=1)
+                end_date = start_date + datetime.timedelta(days=1) * 3
+                fire_date = "{0:0>2}-{1:0>2}-{2:0>2}".format(fire_date.year, fire_date.month, fire_date.day)
                 start_date = "{0:0>2}-{1:0>2}-{2:0>2}".format(start_date.year, start_date.month, start_date.day)
                 end_date = "{0:0>2}-{1:0>2}-{2:0>2}".format(end_date.year, end_date.month, end_date.day)
             except:
                 print "Got empty/weird date from csv {}".format(raw_date)
                 continue
-            scene_id, download_key, cloud, fire_date = get_image_ID(lon, lat, start_date=start_date,
+            scene_id, download_key, cloud, image_date = get_image_ID(lon, lat, start_date=start_date,
                                                          end_date=end_date, cloud_threshold=CLOUD_FILTER)
             count += 1
             if scene_id != -1:
                 if download_key not in meta_fire:
-                    meta_fire[download_key] = {"lons":[lon], "lats":[lat],"fire_date": fire_date, "date":[start_date],
+                    meta_fire[download_key] = {"lats_lons":[(lat, lon)], "image_date": image_date, "date":[fire_date],
                                                "scene_id":scene_id, "cloud":cloud, "fires":[fire_id]}
                 else:
-                    if lon in meta_fire[download_key]["lons"] and lat in meta_fire[download_key]["lats"] \
-                        and meta_fire[download_key]["lons"].index(lon) == meta_fire[download_key]["lats"].index(lat):
-                        # found duplicate, don't add to list
+                    if (lat, lon) in meta_fire[download_key]["lats_lons"]:
                         continue
                     else:
                         meta_fire[download_key]["fires"].append(fire_id)
-                        meta_fire[download_key]["lons"].append(lon)
-                        meta_fire[download_key]["lats"].append(lat)
+                        meta_fire[download_key]["lats_lons"].append((lat,lon))
                         meta_fire[download_key]["date"].append(start_date)
                 if download_key not in scene_list:
                     scene_list.append(download_key)
@@ -242,7 +239,8 @@ if __name__ == '__main__':
     meta_name_base = os.path.basename(args.target_csv).strip(".csv")
 
     if not DOWNLOAD_ONLY:
-        meta_fire, scene_list = process_csv(args.csv_file, args.download_dir)
+        meta_fire, scene_list = process_csv(args.target_csv, args.download_dir)
+        #exit(1)
     else:
         with open(os.path.join(args.download_dir, meta_name_base+"_scene_lists.json"), 'rb') as json_f:
             scene_list = json.load(json_f)
@@ -252,7 +250,7 @@ if __name__ == '__main__':
     print "====== Start downloading all {} images =====".format(len(scene_list))
     for download_key in scene_list:
         try:
-            collection_date = datetime.datetime.strptime(meta_fire[download_key]["fire_date"], '%Y-%m-%d')
+            collection_date = datetime.datetime.strptime(meta_fire[download_key]["image_date"], '%Y-%m-%d')
             pre_collection_threshold = datetime.datetime.strptime("2017-5-1", '%Y-%m-%d')
         except:
             print "Got weird datetime error : ", sys.exc_info()[0]
