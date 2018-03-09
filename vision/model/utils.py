@@ -77,4 +77,4 @@ def save_dict_to_json(d, json_path):
         json.dump(d, f, indent=4)
 
 def is_fire(filename):
-    return int(filename.split(".")[0][-1])
+    return int(filename.split(".")[0].split("_")[-2])

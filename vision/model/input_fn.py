@@ -9,11 +9,7 @@ INFRARED_FILE_EXT = "_B7.jpg"
 
 def load_image(filename, size):
     image_string = tf.read_file(filename)
-
-    # Don't use tf.image.decode_image, or the output shape will be undefined
     image_decoded = tf.image.decode_jpeg(image_string, channels=3)
-
-    # This will convert to float values in [0, 1]
     image = tf.image.convert_image_dtype(image_decoded, tf.float32)
     return image
 
