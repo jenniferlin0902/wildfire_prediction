@@ -17,9 +17,9 @@ import utm
 #OUPUT_PATH=os.path.join(BASE,'landsat_download_3_cropped')'''
 
 ### for local testing:
-BASE = ''
-DEFAULT_DOWNLOAD_PATH=os.path.join(BASE,'landsat_download')
-OUTPUT_PATH = os.path.join(BASE, 'landsat_cropped')
+BASE = '/Volumes/passport'
+DEFAULT_DOWNLOAD_PATH=os.path.join(BASE,'landsat_download_2017')
+OUTPUT_PATH = os.path.join(BASE, 'landsat_cropped_2017_testing')
 
 def get_metainfo(filename):
     f = open(filename,'r')
@@ -47,7 +47,7 @@ def get_fire_coords(filename, label):
     #lons = data[label]['lons']
     lats_lons = data[label]['lats_lons']
     lats = [x[0] for x in lats_lons]
-    lon = [x[1] for x in lats_lons]
+    lons = [x[1] for x in lats_lons]
     return lats, lons
 
 # converting to UTM projected coordinates
@@ -56,8 +56,11 @@ def transform_coords(lats, lons, info):
     proj_lons = []
     for i in range(len(lats)):
         temp = utm.from_latlon(lats[i], lons[i], info['utm_zone'])
-        proj_lats.append(temp[0])
-        proj_lons.append(temp[1])
+        if (min(info['ul_x'], info['lr_x']) < temp[0] < max(info['ul_x'], info['lr_x']) \
+            and min(info['ul_y'], info['lr_y'])< temp[1] < max(info['ul_y'], info['lr_y'])):
+            proj_lats.append(temp[0])
+            proj_lons.append(temp[1])
+
     return proj_lats, proj_lons
 
 def crop_fires(proj_lats, proj_lons, band_image_dict, label, crop_size, info):
@@ -157,6 +160,7 @@ def plot_fires(ir, band_image_dict, proj_lats, proj_lons, info):
         p_y = (y - min(info['ul_y'], info['lr_y'])) * height/(y_range)
         # when plotting coordinates, x first, then y 
         plt.scatter(p_x, height-p_y, color = 'r',s=5, alpha=0.5)
+        print 'x: ' + str(p_x) + ' y: ' + str(height-p_y)
     #plt.scatter(0,0,s=10)
     plt.show()
 
@@ -173,7 +177,8 @@ if __name__ == '__main__':
     download_path = DEFAULT_DOWNLOAD_PATH
 
     ### for local testing:
-    labels = ['LC08_L1TP_041026_20170929_20171013_01_T1']
+    #labels = ['LC08_L1TP_041026_20170929_20171013_01_T1']
+    labels = ['LC08_L1TP_033026_20171124_20171206_01_T1']
 
     for label in labels:
         image_dir = os.path.join(download_path, label)
@@ -197,11 +202,12 @@ if __name__ == '__main__':
             print "Cropping image {}".format(label)
 
             info = get_metainfo(meta_file)
+            print info
             lats, lons = get_fire_coords(fires_file, label)
             proj_lats, proj_lons = transform_coords(lats, lons, info)
  
             crop_fires(proj_lats, proj_lons, band_image_dict, label, crop_size, info)
-            #crop_non_fires(proj_lats, proj_lons, band_image_dict, label, crop_size, info)
+            crop_non_fires(proj_lats, proj_lons, band_image_dict, label, crop_size, info)
 
             ### for visualiztion purposes, can ignore
             #ir = save_ir_image(band_image_dict,label)
