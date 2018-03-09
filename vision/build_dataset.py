@@ -30,7 +30,7 @@ import shutil
 SIZE = 64
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--data_dir', default='/Volumes/Transcend/landsat_cropped/', help="Directory with the SIGNS dataset")
+parser.add_argument('--data_dir', default='/Volumes/passport/landsat_cropped_2017/', help="Directory with the SIGNS dataset")
 parser.add_argument('--output_dir', default='data/', help="Where to write the new data")
 
 
@@ -59,8 +59,8 @@ if __name__ == '__main__':
     test_dir = os.path.join(args.output_dir, "test_images")
     print train_dir
 
-    # Get the filenames in each directory (train and test)
-    filenames = [f for f in os.listdir(data_dir) if f.endswith('.npy')]
+    # Get the filenames in each directory (train and test), use ir to sort
+    filenames = [f for f in os.listdir(data_dir) if f.endswith('_ir.jpg')]
     no_fire_files = []
     fire_files = []
 
@@ -82,10 +82,20 @@ if __name__ == '__main__':
     print "Splitting {} src files into {}".format(len(src_filenames), split)
     for f in src_filenames[:split[0]]:
         shutil.copy(os.path.join(data_dir, f), os.path.join(train_dir))
+        # copy rgb over as well
+        rgb_f = f[:-len("_ir.jpg")] + "_rgb.jpg"
+        print rgb_f
+        shutil.copy(os.path.join(data_dir, rgb_f), os.path.join(train_dir))
     for f in src_filenames[split[0]:split[1]]:
         shutil.copy(os.path.join(data_dir, f), os.path.join(dev_dir))
+        rgb_f = f[:-len("_ir.jpg")] + "_rgb.jpg"
+        print rgb_f
+        shutil.copy(os.path.join(data_dir, rgb_f), os.path.join(dev_dir))
     for f in src_filenames[split[1]:]:
         shutil.copy(os.path.join(data_dir, f), os.path.join(test_dir, f))
+        rgb_f = f[:-len("_ir.jpg")] + "_rgb.jpg"
+        print rgb_f
+        shutil.copy(os.path.join(data_dir, rgb_f), os.path.join(test_dir))
 
     '''
     filenames = {'train': train_filenames,
