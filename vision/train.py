@@ -53,10 +53,10 @@ if __name__ == '__main__':
 
     # Get the filenames from the train and dev sets
     train_filenames = [os.path.join(train_data_dir, f) for f in os.listdir(train_data_dir)
-                       if f.endswith('.jpg')]
+                       if f.endswith('ir.jpg')]
     eval_filenames = [os.path.join(dev_data_dir, f) for f in os.listdir(dev_data_dir)
-                      if f.endswith('.jpg')]
-
+                      if f.endswith('ir.jpg')]
+    print eval_filenames
     # Labels will be between 0 and 5 included (6 classes in total)
     train_labels = [is_fire(os.path.basename(f)) for f in train_filenames]
     eval_labels = [is_fire(os.path.basename(f)) for f in eval_filenames]

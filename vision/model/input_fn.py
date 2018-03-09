@@ -13,15 +13,22 @@ def _parse_function(filename, label, size):
         - Decode the image from jpeg format
         - Convert to float and to range [0, 1]
     """
-    image_string = tf.read_file(filename)
+    ir_image_string = tf.read_file(filename)
+    print filename
+    #rgb_image_string = tf.read_file(filename[:-len("_ir.jpg")] + "_rgb.jpg")
 
     # Don't use tf.image.decode_image, or the output shape will be undefined
-    image_decoded = tf.image.decode_jpeg(image_string, channels=3)
+    ir_image_decoded = tf.image.decode_jpeg(ir_image_string, channels=3)
+
+    #rgb_image_decoded = tf.image.decode_jpeg(rgb_image_string, channels=3)
 
     # This will convert to float values in [0, 1]
-    image = tf.image.convert_image_dtype(image_decoded, tf.float32)
+    ir_image = tf.image.convert_image_dtype(ir_image_decoded, tf.float32)
+    ir_resized_image = tf.image.resize_images(ir_image, [size, size])
+    print ir_resized_image
+    #rgb_resized_image = tf.image.convert_image_dtype(rgb_image_decoded, tf.float32)
 
-    return resized_image, label
+    return ir_resized_image, label
 
 #This is currently not use
 def train_preprocess(image, labels, use_random_flip):

@@ -1,6 +1,7 @@
 """Define the model."""
 
 import tensorflow as tf
+from vgg16 import Vgg16
 
 VGG_CONFIG = [
     [
@@ -60,7 +61,6 @@ def build_simple(is_training, inputs, params):
 
     #assert out.get_shape().as_list() == [None, 4, 4, num_channels * 8]
 
-
     # TODO change 18*18 to some none hardcoded number
     out = tf.contrib.layers.flatten(out, scope="flatten_1")
     with tf.variable_scope('fc_1'):
@@ -70,6 +70,10 @@ def build_simple(is_training, inputs, params):
         out = tf.nn.relu(out)
     return out
 
+def build_preetrained_VGG(inputs, params):
+    vgg = Vgg16(trainable=params.trainable)
+    out = vgg.build(inputs)
+    return out
 
 def build_model(is_training, inputs, params):
     """Compute logits of the model (output distribution)
@@ -84,13 +88,13 @@ def build_model(is_training, inputs, params):
         output: (tf.Tensor) output of the model
     """
     images = inputs['images']
+    print images.get_shape().as_list()
+    #assert images.get_shape().as_list() == [None, params.image_size, params.image_size, 3]
 
-    assert images.get_shape().as_list() == [None, params.image_size, params.image_size, 3]
-
-    out = images
-    build_vgg = False
-    if params.use_vgg:
+    if params.model == "vgg_simple":
         out = build_VGG(is_training, images, params)
+    elif params.model == "vgg_pretrain":
+        out = build_preetrained_VGG(images, params)
     else:
         out = build_simple(is_training, images, params)
 
@@ -98,6 +102,7 @@ def build_model(is_training, inputs, params):
         logits = tf.layers.dense(out, params.num_labels)
 
     return logits
+
 
 
 def model_fn(mode, inputs, params, reuse=False):
