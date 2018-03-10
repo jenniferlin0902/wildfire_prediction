@@ -66,13 +66,16 @@ def train_and_evaluate(train_model_spec, eval_model_spec, model_dir, params, res
         restore_from: (string) directory or file containing weights to restore the graph
     """
     # Initialize tf.Saver instances to save weights during training
-    last_saver = tf.train.Saver() # will keep last 5 epochs
-    best_saver = tf.train.Saver(max_to_keep=1)  # only keep 1 best checkpoint (best on eval)
+    #last_saver = tf.train.Saver() # will keep last 5 epochs
+    #best_saver = tf.train.Saver(max_to_keep=1)  # only keep 1 best checkpoint (best on eval)
     begin_at_epoch = 0
 
     with tf.Session() as sess:
         # Initialize model variables
         sess.run(train_model_spec['variable_init_op'])
+        # Initialize tf.Saver instances to save weights during training
+        last_saver = tf.train.Saver()  # will keep last 5 epochs
+        best_saver = tf.train.Saver(max_to_keep=1)
 
         # Reload weights from directory if specified
         if restore_from is not None:
@@ -96,6 +99,11 @@ def train_and_evaluate(train_model_spec, eval_model_spec, model_dir, params, res
 
             # Save weights
             last_save_path = os.path.join(model_dir, 'last_weights', 'after-epoch')
+            if not os.path.exists(last_save_path):
+                if not os.path.exists(os.path.split(last_save_path)[0]):
+                    os.mkdir(os.path.split(last_save_path)[0])
+                os.mkdir(last_save_path)
+            # ========= This line is crashing ========== #
             last_saver.save(sess, last_save_path, global_step=epoch + 1)
 
             # Evaluate for one epoch on validation set
@@ -109,7 +117,12 @@ def train_and_evaluate(train_model_spec, eval_model_spec, model_dir, params, res
                 best_eval_acc = eval_acc
                 # Save weights
                 best_save_path = os.path.join(model_dir, 'best_weights', 'after-epoch')
-                best_save_path = best_saver.save(sess, best_save_path, global_step=epoch + 1)
+                if not os.path.exists(best_save_path):
+                    if not os.path.exists(os.path.split(best_save_path)[0]):
+                        os.mkdir(os.path.split(best_save_path)[0])
+                    os.mkdir(best_save_path)
+
+                # best_save_path = best_saver.save(sess, best_save_path, global_step=epoch + 1)
                 logging.info("- Found new best accuracy, saving in {}".format(best_save_path))
                 # Save best eval metrics in a json file in the model directory
                 best_json_path = os.path.join(model_dir, "metrics_eval_best_weights.json")

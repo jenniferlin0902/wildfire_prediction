@@ -95,7 +95,7 @@ class Vgg16:
             weights, biases = self.get_fc_var(in_size, out_size, name)
 
             x = tf.reshape(bottom, [-1, in_size])
-            fc = tf.nn.bias_add(tf.matmul(x, weights), biases)
+            fc = tf.nn.bias_add(tf.matmul(x, weights.initialized_value()), biases.initialized_value())
 
             return fc
 
@@ -125,7 +125,7 @@ class Vgg16:
 
         if trainable:
             print "use trainable var for {} ".format(var_name)
-            var = tf.Variable(value, name=var_name)
+            var = tf.Variable(value, name=var_name, trainable=True)
         else:
             print "use constat for {}".format(var_name)
             var = tf.constant(value, dtype=tf.float32, name=var_name)
