@@ -9,10 +9,10 @@ import json
 import os
 import datetime
 
-FIRE_LABEL_FILE='data/landsat_fire_2017.csv'
-BASE = "/Volumes/Transcend/"
-DEFAULT_DOWNLOAD_PATH=os.path.join(BASE,'landsat_download_2017')
-DEFAULT_PROCESSED_PATH=os.path.join(BASE,'landsat_processed_2017')
+FIRE_LABEL_FILE='data/landsat_fire_2016.csv'
+BASE = "/Volumes/passport/"
+DEFAULT_DOWNLOAD_PATH=os.path.join(BASE,'landsat_download_2016')
+DEFAULT_PROCESSED_PATH=os.path.join(BASE,'landsat_processed_2016')
 REMOVE_AFTER_PROCESS=False
 DOWNLOAD_BANDS=[1,2,3,4,5,6,7]
 DOWNLOAD_ADDITIONAL_FILES=["_BQA.TIF", "_MTL.txt"]
@@ -20,7 +20,7 @@ DOWNLOAD_BASE_URL='https://landsat-pds.s3.amazonaws.com/c1/L8'
 DOWNLOAD_PRE_COLLECTION_BASE_URL='https://landsat-pds.s3.amazonaws.com/L8'
 CLOUD_FILTER=30
 GEO_FENCE = [-66.951381, -124.7844079, 24.7433195, 49.3457868] #lon, lat
-DOWNLOAD_ONLY = False
+DOWNLOAD_ONLY = True
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--target_csv', default=FIRE_LABEL_FILE, help="Fire label file")
@@ -248,7 +248,9 @@ if __name__ == '__main__':
             meta_fire = json.load(json_f)
 
     print "====== Start downloading all {} images =====".format(len(scene_list))
+    count = 0
     for download_key in scene_list:
+        print "donwloading image {}, {}".format(count, download_key)
         try:
             collection_date = datetime.datetime.strptime(meta_fire[download_key]["image_date"], '%Y-%m-%d')
             pre_collection_threshold = datetime.datetime.strptime("2017-5-1", '%Y-%m-%d')
@@ -267,6 +269,7 @@ if __name__ == '__main__':
             print "Failed to download image {}".format(download_key)
             scene_list.remove(download_key)
             del meta_fire[download_key]
+        count+=1
     # rewrite meta files in case images fail to download
     with open(os.path.join(args.download_dir,  meta_name_base +"_meta.pickle"), 'w') as pickle_f:
         pickle.dump(meta_fire, pickle_f)

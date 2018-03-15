@@ -18,8 +18,9 @@ import utm
 
 ### for local testing:
 BASE = '/Volumes/passport'
-DEFAULT_DOWNLOAD_PATH=os.path.join(BASE,'landsat_download_2017')
-OUTPUT_PATH = os.path.join(BASE, 'landsat_cropped_2017_testing')
+DEFAULT_DOWNLOAD_PATH=os.path.join(BASE,'landsat_download_2016')
+OUTPUT_PATH = os.path.join(BASE, 'landsat_cropped_2016')
+FILE_2016_STYLE = True
 
 def get_metainfo(filename):
     f = open(filename,'r')
@@ -125,8 +126,8 @@ def crop(band_image_dict, p_x, p_y, pad_size, label, index, is_fire):
     outfile_name = label + '_' + str(index) + '_' + str(is_fire)
 
     outfile_name = os.path.join(OUTPUT_PATH, outfile_name)
-    np.save(outfile_name + '_rgb', rgb)
-    np.save(outfile_name +'_ir', ir)
+    #np.save(outfile_name + '_rgb', rgb)
+    #np.save(outfile_name +'_ir', ir)
     rgb_im = Image.fromarray(rgb)
     rgb_im.save(outfile_name + '_rgb.jpg')
     ir_im = Image.fromarray(ir)
@@ -168,27 +169,36 @@ if __name__ == '__main__':
     crop_size = 224
     bands = [4, 3, 2, 7, 5, 1]
 
-    labels_file = os.path.join(DEFAULT_DOWNLOAD_PATH, "landsat_fire_2017_scene_lists.json")
-    fires_file = os.path.join(DEFAULT_DOWNLOAD_PATH, "landsat_fire_2017_meta.json")
+    labels_file = os.path.join(DEFAULT_DOWNLOAD_PATH, "landsat_fire_2016_scene_lists.json")
+    fires_file = os.path.join(DEFAULT_DOWNLOAD_PATH, "landsat_fire_2016_meta.json")
 
     with open(labels_file, 'r') as f:
         labels = json.load(f)
+
+    with open(fires_file, 'r') as f:
+        meta= json.load(f)
 
     download_path = DEFAULT_DOWNLOAD_PATH
 
     ### for local testing:
     #labels = ['LC08_L1TP_041026_20170929_20171013_01_T1']
-    labels = ['LC08_L1TP_033026_20171124_20171206_01_T1']
+    #labels = ['LC08_L1TP_033026_20171124_20171206_01_T1']
 
-    for label in labels:
-        image_dir = os.path.join(download_path, label)
+    for i, label in enumerate(labels):
+        if FILE_2016_STYLE:
+            print label
+            image_dir = os.path.join(download_path, meta[label]['scene_id'])
+            image_label = meta[label]['scene_id'][:-1] + "0"
+        else:
+            image_dir = os.path.join(download_path, label)
+            image_label = label
 
         # getting strings for reading in each band
         band_path_dict = {}
         for i in bands:
-            band_path_dict['b' + str(i)] = os.path.join(image_dir, label + '_B' + str(i) + '.TIF')
+            band_path_dict['b' + str(i)] = os.path.join(image_dir, image_label + '_B' + str(i) + '.TIF')
 
-        meta_file = os.path.join(image_dir, label + '_MTL.txt')
+        meta_file = os.path.join(image_dir, image_label + '_MTL.txt')
 
         # ensuring all bands and MTL files are present
         # takes longest time to load bands in
@@ -199,7 +209,7 @@ if __name__ == '__main__':
                 band_image_dict['b' + str(i)] = Image.fromarray(temp)
                 print i
 
-            print "Cropping image {}".format(label)
+            print "Cropping image {}, {}".format(i, label)
 
             info = get_metainfo(meta_file)
             print info
