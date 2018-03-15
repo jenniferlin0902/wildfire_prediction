@@ -59,9 +59,6 @@ def build_simple(is_training, inputs, params):
             out = tf.nn.relu(out)
             out = tf.layers.max_pooling2d(out, 2, 2)
 
-    #assert out.get_shape().as_list() == [None, 4, 4, num_channels * 8]
-
-    # TODO change 18*18 to some none hardcoded number
     out = tf.contrib.layers.flatten(out, scope="flatten_1")
     with tf.variable_scope('fc_1'):
         out = tf.layers.dense(out, num_channels * 8)
@@ -70,9 +67,28 @@ def build_simple(is_training, inputs, params):
         out = tf.nn.relu(out)
     return out
 
+def calculate_total_trainable():
+    total_parameters = 0
+    for variable in tf.trainable_variables():
+        # shape is an array of tf.Dimension
+        shape = variable.get_shape()
+        variable_parameters = 1
+        for dim in shape:
+            variable_parameters *= dim.value
+        total_parameters += variable_parameters
+    return
+
 def build_preetrained_VGG(inputs, params):
     vgg = Vgg16(trainable=params.trainable)
     out = vgg.build(inputs)
+
+    # add another fc before output
+    out = tf.contrib.layers.flatten(out, scope="flatten_1")
+    out = tf.contrib.layers.fully_connected(out, 256)
+    out = tf.layers.batch_normalization(out)
+
+    # check trainable variables
+    print "INFO : total trainable param = {}".format(calculate_total_trainable())
     return out
 
 def build_model(is_training, inputs, params):
@@ -89,7 +105,7 @@ def build_model(is_training, inputs, params):
     """
     images = inputs['images']
     print images.get_shape().as_list()
-    #assert images.get_shape().as_list() == [None, params.image_size, params.image_size, 3]
+    assert images.get_shape().as_list() == [None, params.image_size, params.image_size, params.num_channels]
 
     if params.model == "vgg_simple":
         out = build_VGG(is_training, images, params)
@@ -98,6 +114,7 @@ def build_model(is_training, inputs, params):
     else:
         out = build_simple(is_training, images, params)
 
+    # always add an output layer
     with tf.variable_scope('output'):
         logits = tf.layers.dense(out, params.num_labels)
 

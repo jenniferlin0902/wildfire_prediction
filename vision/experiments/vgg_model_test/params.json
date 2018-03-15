@@ -14,7 +14,9 @@
     "num_labels": 2,
     "num_channels": 3,
 
-
     "num_parallel_calls": 4,
-    "save_summary_steps": 10
+    "save_summary_steps": 2,
+
+    "use_ir" : true,
+    "use_rgb" : false
 }

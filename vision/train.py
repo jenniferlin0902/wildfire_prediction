@@ -18,7 +18,7 @@ from model.utils import is_fire
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--model_dir', default='experiments/base_model',
+parser.add_argument('--model_dir', default='experiments/vgg_model_test',
                     help="Experiment directory containing params.json")
 parser.add_argument('--data_dir', default='data',
                     help="Directory containing the dataset")
@@ -53,10 +53,10 @@ if __name__ == '__main__':
 
     # Get the filenames from the train and dev sets
     train_filenames = [os.path.join(train_data_dir, f.strip("_rgb.jpg")) for f in os.listdir(train_data_dir)
-                       if f.endswith('.jpg')]
+                       if f.endswith('_rgb.jpg') if random.random() < 0.1]
     eval_filenames = [os.path.join(dev_data_dir, f.strip("_rgb.jpg")) for f in os.listdir(dev_data_dir)
-                      if f.endswith('.jpg')]
-
+                      if f.endswith('_rgb.jpg') if random.random() < 0.1]
+    print train_filenames
     train_labels = [is_fire(os.path.basename(f)) for f in train_filenames]
     eval_labels = [is_fire(os.path.basename(f)) for f in eval_filenames]
 

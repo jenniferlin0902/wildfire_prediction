@@ -9,8 +9,11 @@ INFRARED_FILE_EXT = "_B7.jpg"
 
 def load_image(filename, size):
     image_string = tf.read_file(filename)
+    print filename
     image_decoded = tf.image.decode_jpeg(image_string, channels=3)
     image = tf.image.convert_image_dtype(image_decoded, tf.float32)
+    image = tf.image.resize_images(image, [size, size])
+
     return image
 
 def _parse_function(filename, label, params):
@@ -21,14 +24,12 @@ def _parse_function(filename, label, params):
     """
     images = []
     if params.use_rgb:
-        images.append(load_image(filename + "_rgb.jpg"), params.size)
+        images.append(load_image(filename + "_rgb.jpg", params.image_size))
     if params.use_ir:
-        images.append(load_image(filename + "_ir.jpg"), params.size)
+        images.append(load_image(filename + "_ir.jpg", params.image_size))
 
     # concat all channels
-    concat_images = np.concatenate(images, axis=3)
-
-    assert(concat_images.shape[1:] == [params.size, params.size, 3 * len(images)])
+    concat_images = tf.concat(images, axis=2)
     return concat_images, label
 
 #This is currently not use
@@ -65,10 +66,10 @@ def input_fn(is_training, filenames, labels, params):
         params: (Params) contains hyperparameters of the model (ex: `params.num_epochs`)
     """
     num_samples = len(filenames)
-
+    print filenames
     # Create a Dataset serving batches of images and labels
     # We don't repeat for multiple epochs because we always train and evaluate for one epoch
-    parse_fn = lambda f, l: _parse_function(f, l, params.image_size)
+    parse_fn = lambda f, l: _parse_function(f, l, params)
 #    train_fn = lambda f, l: train_preprocess(f,l, params.use_random_flip)
 
     if is_training:

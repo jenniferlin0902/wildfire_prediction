@@ -63,16 +63,16 @@ class Vgg16:
         self.pool5 = self.max_pool(self.conv5_3,  'pool5')
         # 25088 = ((224 // (2 ** 5)) ** 2) * 512
 
-        self.fc6 = self.fc_layer(self.pool5,25088,4096, "fc6")
-        assert self.fc6.get_shape().as_list()[1:] == [4096]
-        self.relu6 = tf.nn.relu(self.fc6)
+        #self.fc6 = self.fc_layer(self.pool5,25088,4096, "fc6")
+        #assert self.fc6.get_shape().as_list()[1:] == [4096]
+        #self.relu6 = tf.nn.relu(self.fc6)
 
         #self.fc7 = self.fc_layer(self.relu6, "fc7")
 
         self.data_dict = None
         print(("build model finished: %ds" % (time.time() - start_time)))
         # use relu 6 s output
-        return self.relu6
+        return self.pool5
 
     def avg_pool(self, bottom, name):
         return tf.nn.avg_pool(bottom, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name=name)
@@ -124,10 +124,10 @@ class Vgg16:
             value = initial_value
 
         if trainable:
-            print "use trainable var for {} ".format(var_name)
+            print "INFO: use trainable var for {} ".format(var_name)
             var = tf.Variable(value, name=var_name)
         else:
-            print "use constat for {}".format(var_name)
+            print "INFO: use constant for {}".format(var_name)
             var = tf.constant(value, dtype=tf.float32, name=var_name)
 
         self.var_dict[(name, idx)] = var
