@@ -85,6 +85,13 @@ def train_and_evaluate(train_model_spec, eval_model_spec, model_dir, params, res
         # For tensorboard (takes care of writing summaries to files)
         train_writer = tf.summary.FileWriter(os.path.join(model_dir, 'train_summaries'), sess.graph)
         eval_writer = tf.summary.FileWriter(os.path.join(model_dir, 'eval_summaries'), sess.graph)
+        # create all necessariy path
+        if not os.path.exists(os.path.join(model_dir, 'last_weights')):
+            os.mkdir(os.path.join(model_dir, 'last_weights'))
+        if not os.path.exists(os.path.join(model_dir, 'best_weights')):
+            os.mkdir(os.path.join(model_dir, 'best_weights'))
+        if not os.path.exists(os.path.join(model_dir, 'last_weights', 'after-epoch')):
+            os.mkdir(os.path.join(model_dir, 'last_weights', 'after-epoch'))
 
         best_eval_acc = 0.0
         for epoch in range(begin_at_epoch, begin_at_epoch + params.num_epochs):
@@ -98,10 +105,6 @@ def train_and_evaluate(train_model_spec, eval_model_spec, model_dir, params, res
 
             last_save_path = os.path.join(model_dir, 'last_weights', 'after-epoch')
             # make sure path exist
-            if not os.path.exists(os.path.split(last_save_path)[0]):
-                os.mkdir(os.path.split(last_save_path)[0])
-            if not os.path.exists(last_save_path):
-                os.mkdir(last_save_path)
             last_saver.save(sess, last_save_path, global_step=epoch + 1)
 
             # Evaluate for one epoch on validation set
@@ -115,10 +118,6 @@ def train_and_evaluate(train_model_spec, eval_model_spec, model_dir, params, res
                 best_eval_acc = eval_acc
                 # Save weights
                 best_save_path = os.path.join(model_dir, 'best_weights', 'after-epoch')
-                if not os.path.exists(os.path.split(best_save_path)[0]):
-                    os.mkdir(os.path.split(best_save_path)[0])
-                if not os.path.exists(best_save_path):
-                    os.mkdir(best_save_path)
                 best_save_path = best_saver.save(sess, best_save_path, global_step=epoch + 1)
                 logging.info("- Found new best accuracy, saving in {}".format(best_save_path))
                 # Save best eval metrics in a json file in the model directory
