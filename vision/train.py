@@ -24,7 +24,7 @@ parser.add_argument('--data_dir', default='data',
                     help="Directory containing the dataset")
 parser.add_argument('--restore_from', default=None,
                     help="Optional, directory or file containing weights to reload before training")
-
+SMALL_TESTING = 1
 
 if __name__ == '__main__':
     # Set the random seed for the whole graph for reproductible experiments
@@ -56,6 +56,12 @@ if __name__ == '__main__':
                        if f.endswith('_rgb.jpg')]
     eval_filenames = [os.path.join(dev_data_dir, f.strip("_rgb.jpg")) for f in os.listdir(dev_data_dir)
                       if f.endswith('_rgb.jpg')]
+
+    if SMALL_TESTING:
+        train_filenames = [os.path.join(train_data_dir, f.strip("_rgb.jpg")) for f in os.listdir(train_data_dir)
+                           if f.endswith('_rgb.jpg') and random.random() < 0.1]
+        eval_filenames = [os.path.join(dev_data_dir, f.strip("_rgb.jpg")) for f in os.listdir(dev_data_dir)
+                          if f.endswith('_rgb.jpg') and  random.random() < 0.1]
     logging.info("train size {}, eval size {}".format(len(train_filenames), len(eval_filenames)))
     train_labels = [is_fire(os.path.basename(f)) for f in train_filenames]
     eval_labels = [is_fire(os.path.basename(f)) for f in eval_filenames]
