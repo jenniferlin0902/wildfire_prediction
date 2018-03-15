@@ -57,7 +57,6 @@ if __name__ == '__main__':
     dev_dir = os.path.join(args.output_dir, "dev_images")
     train_dir = os.path.join(args.output_dir, "train_images")
     test_dir = os.path.join(args.output_dir, "test_images")
-    print train_dir
 
     # Get the filenames in each directory (train and test), use ir to sort
     filenames = [f for f in os.listdir(data_dir) if f.endswith('_ir.jpg')]
