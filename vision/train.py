@@ -53,10 +53,10 @@ if __name__ == '__main__':
 
     # Get the filenames from the train and dev sets
     train_filenames = [os.path.join(train_data_dir, f.strip("_rgb.jpg")) for f in os.listdir(train_data_dir)
-                       if f.endswith('_rgb.jpg') if random.random() < 0.1]
+                       if f.endswith('_rgb.jpg')]
     eval_filenames = [os.path.join(dev_data_dir, f.strip("_rgb.jpg")) for f in os.listdir(dev_data_dir)
-                      if f.endswith('_rgb.jpg') if random.random() < 0.1]
-    print train_filenames
+                      if f.endswith('_rgb.jpg')]
+    logging.info("train size {}, eval size {}".format(len(train_filenames), len(eval_filenames)))
     train_labels = [is_fire(os.path.basename(f)) for f in train_filenames]
     eval_labels = [is_fire(os.path.basename(f)) for f in eval_filenames]
 
