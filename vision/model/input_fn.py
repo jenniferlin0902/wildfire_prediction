@@ -7,12 +7,7 @@ import numpy as np
 #RGB_FILE_EXT = ".jpg"
 INFRARED_FILE_EXT = "_B7.jpg"
 
-def _parse_function(filename, label, size):
-    """Obtain the image from the filename (for both training and validation).
-    The following operations are applied:
-        - Decode the image from jpeg format
-        - Convert to float and to range [0, 1]
-    """
+def load_image(filename, size):
     image_string = tf.read_file(filename)
 
     # Don't use tf.image.decode_image, or the output shape will be undefined
@@ -20,27 +15,44 @@ def _parse_function(filename, label, size):
 
     # This will convert to float values in [0, 1]
     image = tf.image.convert_image_dtype(image_decoded, tf.float32)
+    return image
 
-    return resized_image, label
+def _parse_function(filename, label, params):
+    """Obtain the image from the filename (for both training and validation).
+    The following operations are applied:
+        - Decode the image from jpeg format
+        - Convert to float and to range [0, 1]
+    """
+    images = []
+    if params.use_rgb:
+        images.append(load_image(filename + "_rgb.jpg"), params.size)
+    if params.use_ir:
+        images.append(load_image(filename + "_ir.jpg"), params.size)
+
+    # concat all channels
+    concat_images = np.concatenate(images, axis=3)
+
+    assert(concat_images.shape[1:] == [params.size, params.size, 3 * len(images)])
+    return concat_images, label
 
 #This is currently not use
-def train_preprocess(image, labels, use_random_flip):
-    """Image preprocessing for training.
-
-    Apply the following operations:
-        - Horizontally flip the image with probability 1/2
-        - Apply random brightness and saturation
-    """
-    if use_random_flip:
-        image = tf.image.random_flip_left_right(image)
-
-    image = tf.image.random_brightness(image, max_delta=32.0 / 255.0)
-    image = tf.image.random_saturation(image, lower=0.5, upper=1.5)
-
-    # Make sure the image is still in [0, 1]
-    image = tf.clip_by_value(image, 0.0, 1.0)
-    #print image
-    return image, labels
+# def train_preprocess(image, labels, use_random_flip):
+#     """Image preprocessing for training.
+#
+#     Apply the following operations:
+#         - Horizontally flip the image with probability 1/2
+#         - Apply random brightness and saturation
+#     """
+#     if use_random_flip:
+#         image = tf.image.random_flip_left_right(image)
+#
+#     image = tf.image.random_brightness(image, max_delta=32.0 / 255.0)
+#     image = tf.image.random_saturation(image, lower=0.5, upper=1.5)
+#
+#     # Make sure the image is still in [0, 1]
+#     image = tf.clip_by_value(image, 0.0, 1.0)
+#     #print image
+#     return image, labels
 
 
 def input_fn(is_training, filenames, labels, params):
@@ -61,7 +73,7 @@ def input_fn(is_training, filenames, labels, params):
     # Create a Dataset serving batches of images and labels
     # We don't repeat for multiple epochs because we always train and evaluate for one epoch
     parse_fn = lambda f, l: _parse_function(f, l, params.image_size)
-    train_fn = lambda f, l: train_preprocess(f,l, params.use_random_flip)
+#    train_fn = lambda f, l: train_preprocess(f,l, params.use_random_flip)
 
     if is_training:
         dataset = (tf.data.Dataset.from_tensor_slices((tf.constant(filenames), tf.constant(labels)))
