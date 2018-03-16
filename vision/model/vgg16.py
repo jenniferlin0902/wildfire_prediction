@@ -9,13 +9,14 @@ VGG_MEAN = [103.939, 116.779, 123.68]
 
 
 class Vgg16:
-    def __init__(self, trainable=True, vgg16_npy_path=None):
+    def __init__(self, trainable=True, vgg16_npy_path=None, scope="Vgg16"):
         if vgg16_npy_path == None:
             vgg16_npy_path = os.path.join(os.getcwd(), "vgg16.npy")
         self.data_dict = np.load(vgg16_npy_path, encoding='latin1').item()
         self.trainable = trainable
         print("npy file loaded")
         self.var_dict = {}
+        self.scope = scope
 
     def build(self, rgb):
         """
@@ -126,7 +127,8 @@ class Vgg16:
         if trainable:
             print "INFO: use trainable var for {} ".format(var_name)
             init = tf.constant_initializer(value)
-            var = tf.get_variable(var_name,initializer=init, trainable=True)
+            print value.shape
+            var = tf.get_variable(var_name,initializer=init, trainable=True, shape=value.shape, scope=self.scope)
         else:
             print "INFO: use constant for {}".format(var_name)
             var = tf.constant(value, dtype=tf.float32, name=var_name)

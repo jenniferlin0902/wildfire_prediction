@@ -95,13 +95,13 @@ def build_preetrained_VGG(inputs, params):
 def build_preetrained_VGG_double(inputs, params):
     inputs1, inputs2 = tf.split(inputs, [3, 3], 3)
 
-    vgg1 = Vgg16(trainable=params.trainable)
+    vgg1 = Vgg16(trainable=params.trainable, scope="vgg_rgb")
     out1 = vgg1.build(inputs1)
     out1 = tf.contrib.layers.flatten(out1, scope="flatten_1")
     out1 = tf.contrib.layers.fully_connected(out1, 512)
     out1 = tf.layers.batch_normalization(out1)
 
-    vgg2 = Vgg16(trainable=params.trainable)
+    vgg2 = Vgg16(trainable=params.trainable, scope="vgg_ir")
     out2 = vgg2.build(inputs2)
     out2 = tf.contrib.layers.flatten(out2, scope="flatten_2")
     out2 = tf.contrib.layers.fully_connected(out2, 512)
@@ -211,7 +211,7 @@ def model_fn(mode, inputs, params, reuse=False):
     # Summaries for training
     tf.summary.scalar('loss', loss)
     tf.summary.scalar('accuracy', accuracy)
-    tf.summary.image('train_image', inputs['images'])
+    #tf.summary.image('train_image', inputs['images'])
 
     #TODO: if mode == 'eval': ?
     # Add incorrectly labeled images
