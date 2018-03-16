@@ -76,7 +76,7 @@ def calculate_total_trainable():
         for dim in shape:
             variable_parameters *= dim.value
         total_parameters += variable_parameters
-    return
+    return total_parameters
 
 def build_preetrained_VGG(inputs, params):
     vgg = Vgg16(trainable=params.trainable)
@@ -90,6 +90,35 @@ def build_preetrained_VGG(inputs, params):
     # check trainable variables
     print "INFO : total trainable param = {}".format(calculate_total_trainable())
     return out
+
+# added for case where both ir and rgb
+def build_preetrained_VGG_double(inputs, params):
+    inputs1, inputs2 = tf.split(inputs, [3, 3], 3)
+
+    vgg1 = Vgg16(trainable=params.trainable)
+    out1 = vgg1.build(inputs1)
+    out1 = tf.contrib.layers.flatten(out1, scope="flatten_1")
+    out1 = tf.contrib.layers.fully_connected(out1, 512)
+    out1 = tf.layers.batch_normalization(out1)
+
+    vgg2 = Vgg16(trainable=params.trainable)
+    out2 = vgg2.build(inputs2)
+    out2 = tf.contrib.layers.flatten(out2, scope="flatten_2")
+    out2 = tf.contrib.layers.fully_connected(out2, 512)
+    out2 = tf.layers.batch_normalization(out2)
+
+    # combining together
+    out1 = tf.contrib.layers.flatten(out1, scope="flatten_3")
+    out2 = tf.contrib.layers.flatten(out2, scope="flatten_4")
+    out = tf.concat([out1, out2], axis=1)
+
+    out = tf.contrib.layers.fully_connected(out, 1024)
+    out = tf.layers.batch_normalization(out)
+
+    # check trainable variables
+    print "INFO : total trainable param = {}".format(calculate_total_trainable())
+    return out
+
 
 def build_model(is_training, inputs, params):
     """Compute logits of the model (output distribution)
@@ -109,8 +138,10 @@ def build_model(is_training, inputs, params):
 
     if params.model == "vgg_simple":
         out = build_VGG(is_training, images, params)
-    elif params.model == "vgg_pretrain":
+    elif (params.model == "vgg_pretrain" and params.num_channels == 3):
         out = build_preetrained_VGG(images, params)
+    elif (params.model == "vgg_pretrain" and params.num_channels == 6):
+        out = build_preetrained_VGG_double(images, params)
     else:
         out = build_simple(is_training, images, params)
 
@@ -119,7 +150,6 @@ def build_model(is_training, inputs, params):
         logits = tf.layers.dense(out, params.num_labels)
 
     return logits
-
 
 
 def model_fn(mode, inputs, params, reuse=False):
