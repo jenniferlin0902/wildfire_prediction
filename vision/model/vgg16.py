@@ -125,7 +125,8 @@ class Vgg16:
 
         if trainable:
             print "INFO: use trainable var for {} ".format(var_name)
-            var = tf.Variable(value, name=var_name)
+            init = tf.constant_initializer(value)
+            var = tf.get_variable(var_name,initializer=init, trainable=True)
         else:
             print "INFO: use constant for {}".format(var_name)
             var = tf.constant(value, dtype=tf.float32, name=var_name)
