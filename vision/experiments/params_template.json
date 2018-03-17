@@ -1,9 +1,9 @@
 {
-    "learning_rate": 1e-3,
+    "learning_rate": 1e-2,
     "batch_size": 100,
     "num_epochs": 20,
-
-    "model":"vgg_pretrain",
+    "kernel_size": 3,
+    "model":"vgg_simple",
     "trainable":true,
 
     "use_batch_norm": true,
@@ -12,9 +12,51 @@
     "image_size": 224,
     "use_random_flip": true,
     "num_labels": 2,
-    "num_channels": 3,
-
+    "num_channels": 6,
 
     "num_parallel_calls": 4,
-    "save_summary_steps": 2
+    "save_summary_steps": 2,
+
+    "use_ir" : true,
+    "use_rgb" : true,
+
+    "conv_model" : [
+        [
+            {"type":"Conv", "size":3, "filters":32},
+            {"type": "Batchnorm"},
+            {"type": "Relu"},
+            {"type": "Max", "size": 2}
+        ],
+        [
+            {"type": "Conv", "size": 3, "filters": 32},
+            {"type": "Batchnorm"},
+            {"type": "Relu"},
+            {"type": "Max", "size": 2}
+        ],
+        [
+            {"type": "Conv", "size": 3, "filters": 24},
+            {"type": "Batchnorm"},
+            {"type": "Relu"},
+            {"type": "Max", "size": 2}
+        ],
+        [
+            {"type": "Conv", "size": 3, "filters": 48},
+            {"type": "Batchnorm"},
+            {"type": "Relu"},
+            {"type": "Max", "size": 2}
+        ],
+        [
+            {"type": "Flat"},
+            {"type": "Fc", "size": 128},
+            {"type": "Batchnorm"},
+            {"type": "Relu"},
+            {"type": "Dropout", "p": 0.6}
+        ],
+        [
+            {"type": "Fc", "size": 48},
+            {"type": "Batchnorm"},
+            {"type": "Relu"},
+            {"type": "Dropout", "p": 0.6}
+        ]
+    ]
 }
