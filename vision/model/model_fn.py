@@ -5,32 +5,28 @@ from vgg16 import Vgg16
 
 VGG_CONFIG = [
     [
-        {"type":"Conv", "size":3, "filters":64},
-        {"type": "Conv", "size": 3, "filters": 64},
-        {"type": "Batchnorm"},
-        {"type": "Relu"},
-        {"type": "Max", "size": 3},
-    ],
-    [
-        {"type":"Conv", "size":3, "filters":128},
-        {"type": "Conv", "size": 3, "filters": 64},
+        {"type":"Conv", "size":3, "filters":6},
         {"type": "Batchnorm"},
         {"type": "Relu"},
         {"type": "Max", "size": 2},
     ],
     [
-        {"type": "Conv", "size": 3, "filters": 64},
+        {"type": "Conv", "size": 3, "filters": 24},
+        {"type": "Batchnorm"},
+        {"type": "Relu"},
+        {"type": "Max", "size": 2},
+    ],
+    [
+        {"type": "Conv", "size": 3, "filters": 48},
+        {"type": "Batchnorm"},
+        {"type": "Relu"},
         {"type": "Max", "size": 2},
     ],
     [
         {"type": "Flat"},
-        {"type": "Fc", "size": 1024},
-        {"type": "Dropout", "p": 0.5}
+        {"type": "Fc", "size": 48},
+        {"type": "Relu"},
     ],
-    [
-        {"type": "Fc", "size": 128},
-        {"type": "Dropout", "p": 0.5}
-    ]
 ]
 
 # TODO add bn layer to VGG net
@@ -54,6 +50,8 @@ def build_VGG(is_training, inputs, params):
                     out = tf.contrib.layers.dropout(out, network["p"])
                 elif network["type"] == "Batchnorm":
                     out = tf.layers.batch_normalization(out, momentum=params.bn_momentum)
+                elif network["type"] == "Relu":
+                    out = tf.nn.relu(out)
                 else:
                     raise "Invalid NN type arguement"
     return out
@@ -223,7 +221,7 @@ def model_fn(mode, inputs, params, reuse=False):
     # Summaries for training
     tf.summary.scalar('loss', loss)
     tf.summary.scalar('accuracy', accuracy)
-    tf.summary.image('train_image', tf.split(inputs['images'], 2, axis=3))
+#    tf.summary.image('train_image', tf.split(inputs['images'], 2, axis=3))
 
     #TODO: if mode == 'eval': ?
     # Add incorrectly labeled images
