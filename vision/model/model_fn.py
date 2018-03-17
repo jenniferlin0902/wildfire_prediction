@@ -45,8 +45,13 @@ VGG_CONFIG = [
 
 # TODO add bn layer to VGG net
 def build_VGG(is_training, inputs, params):
-    print "====================== Building VGG simple model ============================="
-    network_configs = VGG_CONFIG
+    print "====================== Building VGG custom model ============================="
+    if "conv_model" in params.dict:
+        print "Load conv model from param"
+        network_configs = params.conv_model
+    else:
+        print "Load default conv model"
+        network_configs = VGG_CONFIG
     out = inputs
     for i, block in enumerate(network_configs):
         for j, network in enumerate(block):
