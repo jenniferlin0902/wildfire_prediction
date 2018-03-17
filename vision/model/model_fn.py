@@ -168,6 +168,7 @@ def model_fn(mode, inputs, params, reuse=False):
     is_training = (mode == 'train')
     labels = inputs['labels']
     labels = tf.cast(labels, tf.int64)
+    print "label dim = {}".format(labels.get_shape().as_list())
 
     # -----------------------------------------------------------
     # MODEL: define the layers of the model
@@ -211,7 +212,7 @@ def model_fn(mode, inputs, params, reuse=False):
     # Summaries for training
     tf.summary.scalar('loss', loss)
     tf.summary.scalar('accuracy', accuracy)
-    #tf.summary.image('train_image', inputs['images'])
+    tf.summary.image('train_image', tf.split(inputs['images'], 2, axis=3))
 
     #TODO: if mode == 'eval': ?
     # Add incorrectly labeled images
