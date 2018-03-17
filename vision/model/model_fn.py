@@ -8,10 +8,12 @@ VGG_CONFIG = [
         {"type":"Conv", "size":3, "filters":64},
         {"type": "Conv", "size": 3, "filters": 64},
         {"type": "Max", "size": 3},
+        {"type": "Batchnorm"},
     ],
     [
         {"type":"Conv", "size":3, "filters":128},
         {"type": "Max", "size": 2},
+        {"type": "Batchnorm"}
     ],
     [
         {"type": "Conv", "size": 3, "filters": 128},
@@ -40,6 +42,10 @@ def build_VGG(is_training, inputs, params):
                     out = tf.contrib.layers.fully_connected(out, network["size"],scope="network_{}".format(j))
                 elif network["type"] == "Flat":
                     out = tf.contrib.layers.flatten(out)
+                elif network["type"] == "Dropout":
+                    out = tf.contrib.layers.dropout(out, 0.8)
+                elif network["type"] == "Batchnorm":
+                    out = tf.layers.batch_normalization(out, momentum=bn_momentum)
                 else:
                     raise "Invalid NN type arguement"
     return out
@@ -53,7 +59,7 @@ def build_simple(is_training, inputs, params):
     channels = [num_channels, num_channels * 2, num_channels * 4, num_channels * 8]
     for i, c in enumerate(channels):
         with tf.variable_scope('block_{}'.format(i+1)):
-            out = tf.layers.conv2d(out, c, params.kernel_size(), padding='same')
+            out = tf.layers.conv2d(out, c, params.kernel_size, padding='same')
             if params.use_batch_norm:
                 out = tf.layers.batch_normalization(out, momentum=bn_momentum, training=is_training)
             out = tf.nn.relu(out)
@@ -88,7 +94,6 @@ def build_preetrained_VGG(inputs, params):
     out = tf.layers.batch_normalization(out)
 
     # check trainable variables
-    print "INFO : total trainable param = {}".format(calculate_total_trainable())
     return out
 
 # added for case where both ir and rgb
@@ -98,25 +103,22 @@ def build_preetrained_VGG_double(inputs, params):
     vgg1 = Vgg16(trainable=params.trainable, scope="vgg_rgb")
     out1 = vgg1.build(inputs1)
     out1 = tf.contrib.layers.flatten(out1, scope="flatten_1")
-    out1 = tf.contrib.layers.fully_connected(out1, 512)
+    out1 = tf.contrib.layers.fully_connected(out1, 256)
     out1 = tf.layers.batch_normalization(out1)
 
     vgg2 = Vgg16(trainable=params.trainable, scope="vgg_ir")
     out2 = vgg2.build(inputs2)
     out2 = tf.contrib.layers.flatten(out2, scope="flatten_2")
-    out2 = tf.contrib.layers.fully_connected(out2, 512)
+    out2 = tf.contrib.layers.fully_connected(out2, 256)
     out2 = tf.layers.batch_normalization(out2)
 
     # combining together
-    out1 = tf.contrib.layers.flatten(out1, scope="flatten_3")
-    out2 = tf.contrib.layers.flatten(out2, scope="flatten_4")
     out = tf.concat([out1, out2], axis=1)
 
-    out = tf.contrib.layers.fully_connected(out, 1024)
+    out = tf.contrib.layers.fully_connected(out, 512)
     out = tf.layers.batch_normalization(out)
 
     # check trainable variables
-    print "INFO : total trainable param = {}".format(calculate_total_trainable())
     return out
 
 
@@ -149,6 +151,7 @@ def build_model(is_training, inputs, params):
     with tf.variable_scope('output'):
         logits = tf.layers.dense(out, params.num_labels)
 
+    print "INFO : total trainable param = {}".format(calculate_total_trainable())
     return logits
 
 
@@ -216,13 +219,13 @@ def model_fn(mode, inputs, params, reuse=False):
 
     #TODO: if mode == 'eval': ?
     # Add incorrectly labeled images
-    mask = tf.not_equal(labels, predictions)
+#    mask = tf.not_equal(labels, predictions)
 
     # Add a different summary to know how they were misclassified
-    for label in range(0, params.num_labels):
-        mask_label = tf.logical_and(mask, tf.equal(predictions, label))
-        incorrect_image_label = tf.boolean_mask(inputs['images'], mask_label)
-        tf.summary.image('incorrectly_labeled_{}'.format(label), incorrect_image_label)
+ #   for label in range(0, params.num_labels):
+  #      mask_label = tf.logical_and(mask, tf.equal(predictions, label))
+   #     incorrect_image_label = tf.boolean_mask(inputs['images'], mask_label)
+    #    tf.summary.image('incorrectly_labeled_{}'.format(label), incorrect_image_label)
 
     # -----------------------------------------------------------
     # MODEL SPECIFICATION

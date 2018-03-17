@@ -128,7 +128,8 @@ class Vgg16:
             print "INFO: use trainable var for {} ".format(var_name)
             init = tf.constant_initializer(value)
             print value.shape
-            var = tf.get_variable(var_name,initializer=init, trainable=True, shape=value.shape, scope=self.scope)
+            with tf.variable_scope(self.scope):
+                var = tf.get_variable(var_name,initializer=init, trainable=True, shape=value.shape)
         else:
             print "INFO: use constant for {}".format(var_name)
             var = tf.constant(value, dtype=tf.float32, name=var_name)

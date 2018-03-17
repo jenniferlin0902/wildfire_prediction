@@ -66,7 +66,6 @@ def input_fn(is_training, filenames, labels, params):
         params: (Params) contains hyperparameters of the model (ex: `params.num_epochs`)
     """
     num_samples = len(filenames)
-    print filenames
     # Create a Dataset serving batches of images and labels
     # We don't repeat for multiple epochs because we always train and evaluate for one epoch
     parse_fn = lambda f, l: _parse_function(f, l, params)
