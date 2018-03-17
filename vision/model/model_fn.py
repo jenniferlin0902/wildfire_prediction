@@ -5,13 +5,13 @@ from vgg16 import Vgg16
 
 VGG_CONFIG = [
     [
-        {"type":"Conv", "size":3, "filters":6},
+        {"type":"Conv", "size":3, "filters":32},
         {"type": "Batchnorm"},
         {"type": "Relu"},
         {"type": "Max", "size": 2},
     ],
     [
-        {"type": "Conv", "size": 3, "filters": 12},
+        {"type": "Conv", "size": 3, "filters": 32},
         {"type": "Batchnorm"},
         {"type": "Relu"},
         {"type": "Max", "size": 2},
@@ -30,14 +30,22 @@ VGG_CONFIG = [
     ],
     [
         {"type": "Flat"},
+        {"type": "Fc", "size": 128},
+        {"type": "Batchnorm"},
+        {"type": "Relu"},
+        {"type": "Dropout", "p": 0.6},
+    ],
+    [
         {"type": "Fc", "size": 48},
         {"type": "Batchnorm"},
         {"type": "Relu"},
+        {"type": "Dropout", "p": 0.6},
     ],
 ]
 
 # TODO add bn layer to VGG net
 def build_VGG(is_training, inputs, params):
+    print "====================== Building VGG simple model ============================="
     network_configs = VGG_CONFIG
     out = inputs
     for i, block in enumerate(network_configs):
