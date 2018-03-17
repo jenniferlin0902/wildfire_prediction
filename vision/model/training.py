@@ -105,7 +105,7 @@ def train_and_evaluate(train_model_spec, eval_model_spec, model_dir, params, res
 
             last_save_path = os.path.join(model_dir, 'last_weights', 'after-epoch')
             # make sure path exist
-            last_saver.save(sess, last_save_path, global_step=epoch + 1)
+            #last_saver.save(sess, last_save_path, global_step=epoch + 1)
 
             # Evaluate for one epoch on validation set
             num_steps = (params.eval_size + params.batch_size - 1) // params.batch_size
@@ -118,7 +118,7 @@ def train_and_evaluate(train_model_spec, eval_model_spec, model_dir, params, res
                 best_eval_acc = eval_acc
                 # Save weights
                 best_save_path = os.path.join(model_dir, 'best_weights', 'after-epoch')
-                best_save_path = best_saver.save(sess, best_save_path, global_step=epoch + 1)
+                #best_save_path = best_saver.save(sess, best_save_path, global_step=epoch + 1)
                 logging.info("- Found new best accuracy, saving in {}".format(best_save_path))
                 # Save best eval metrics in a json file in the model directory
                 best_json_path = os.path.join(model_dir, "metrics_eval_best_weights.json")

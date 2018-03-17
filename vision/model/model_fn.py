@@ -98,13 +98,13 @@ def build_preetrained_VGG_double(inputs, params):
     vgg1 = Vgg16(trainable=params.trainable, scope="vgg_rgb")
     out1 = vgg1.build(inputs1)
     out1 = tf.contrib.layers.flatten(out1, scope="flatten_1")
-    out1 = tf.contrib.layers.fully_connected(out1, 512)
+    out1 = tf.contrib.layers.fully_connected(out1, 256)
     out1 = tf.layers.batch_normalization(out1)
 
     vgg2 = Vgg16(trainable=params.trainable, scope="vgg_ir")
     out2 = vgg2.build(inputs2)
     out2 = tf.contrib.layers.flatten(out2, scope="flatten_2")
-    out2 = tf.contrib.layers.fully_connected(out2, 512)
+    out2 = tf.contrib.layers.fully_connected(out2, 256)
     out2 = tf.layers.batch_normalization(out2)
 
     # combining together
@@ -112,7 +112,7 @@ def build_preetrained_VGG_double(inputs, params):
     out2 = tf.contrib.layers.flatten(out2, scope="flatten_4")
     out = tf.concat([out1, out2], axis=1)
 
-    out = tf.contrib.layers.fully_connected(out, 1024)
+    out = tf.contrib.layers.fully_connected(out, 512)
     out = tf.layers.batch_normalization(out)
 
     # check trainable variables
@@ -221,7 +221,7 @@ def model_fn(mode, inputs, params, reuse=False):
     for label in range(0, params.num_labels):
         mask_label = tf.logical_and(mask, tf.equal(predictions, label))
         incorrect_image_label = tf.boolean_mask(inputs['images'], mask_label)
-        tf.summary.image('incorrectly_labeled_{}'.format(label), incorrect_image_label)
+        #tf.summary.image('incorrectly_labeled_{}'.format(label), incorrect_image_label)
 
     # -----------------------------------------------------------
     # MODEL SPECIFICATION
