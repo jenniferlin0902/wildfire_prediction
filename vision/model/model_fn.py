@@ -11,6 +11,12 @@ VGG_CONFIG = [
         {"type": "Max", "size": 2},
     ],
     [
+        {"type": "Conv", "size": 3, "filters": 12},
+        {"type": "Batchnorm"},
+        {"type": "Relu"},
+        {"type": "Max", "size": 2},
+    ],
+    [
         {"type": "Conv", "size": 3, "filters": 24},
         {"type": "Batchnorm"},
         {"type": "Relu"},
@@ -25,6 +31,7 @@ VGG_CONFIG = [
     [
         {"type": "Flat"},
         {"type": "Fc", "size": 48},
+        {"type": "Batchnorm"},
         {"type": "Relu"},
     ],
 ]
@@ -38,18 +45,19 @@ def build_VGG(is_training, inputs, params):
             with tf.variable_scope("block_{}".format(i+1)):
                 if network["type"] == "Conv":
                     # use ReLU and xavier_initializer by default
-                    out = tf.contrib.layers.conv2d(out, network["filters"], network["size"], padding='same', scope="network_{}".format(j))
+                    out = tf.layers.conv2d(out, network["filters"],
+                                                   network["size"], padding='same', name="conv_{}".format(j))
                 elif network["type"] == "Max":
                     out = tf.layers.max_pooling2d(out, network["size"], network["size"])
                 elif network["type"] == "Fc":
                     # use relu by default
-                    out = tf.contrib.layers.fully_connected(out, network["size"],scope="network_{}".format(j))
+                    out = tf.layers.dense(out, network["size"], name="fc_{}".format(j))
                 elif network["type"] == "Flat":
                     out = tf.contrib.layers.flatten(out)
                 elif network["type"] == "Dropout":
                     out = tf.contrib.layers.dropout(out, network["p"])
                 elif network["type"] == "Batchnorm":
-                    out = tf.layers.batch_normalization(out, momentum=params.bn_momentum)
+                    out = tf.layers.batch_normalization(out, momentum=params.bn_momentum, training=is_training)
                 elif network["type"] == "Relu":
                     out = tf.nn.relu(out)
                 else:
