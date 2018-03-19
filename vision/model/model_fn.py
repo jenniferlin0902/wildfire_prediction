@@ -2,6 +2,7 @@
 
 import tensorflow as tf
 from vgg16 import Vgg16
+import matplotlib.pyplot as plt
 
 VGG_CONFIG = [
     [
@@ -179,7 +180,23 @@ def build_model(is_training, inputs, params):
         logits = tf.layers.dense(out, params.num_labels)
 
     print "INFO : total trainable param = {}".format(calculate_total_trainable())
+    print logits
     return logits
+
+
+#def getActivations(layer,stimuli):
+#    units = sess.run(layer,feed_dict={x:np.reshape(stimuli,[1,784],order='F'),keep_prob:1.0})
+#    plotNNFilter(units)
+
+#def plotNNFilter(units):
+#    filters = units.shape[3]
+#    plt.figure(1, figsize=(20,20))
+#    n_columns = 6
+#    n_rows = math.ceil(filters / n_columns) + 1
+#    for i in range(filters):
+#        plt.subplot(n_rows, n_columns, i+1)
+#        plt.title('Filter ' + str(i))
+#        plt.imshow(units[0,:,:,i], interpolation="nearest", cmap="gray")
 
 
 def model_fn(mode, inputs, params, reuse=False):
@@ -197,17 +214,29 @@ def model_fn(mode, inputs, params, reuse=False):
     """
     is_training = (mode == 'train')
     labels = inputs['labels']
-    labels = tf.cast(labels, tf.int64)
-    print "label dim = {}".format(labels.get_shape().as_list())
+    print "labels before cast {}".format(labels)
 
+    filenames = inputs['filenames']
+    labels = tf.cast(labels, tf.int64)
+    filenames = tf.cast(filenames, tf.string)
+    print "label dim = {}".format(labels.get_shape().as_list())
+    print "jus got label, after cast"
+    print filenames
+    print labels
     # -----------------------------------------------------------
     # MODEL: define the layers of the model
     with tf.variable_scope('model', reuse=reuse):
         # Compute the output distribution of the model and the predictions
+        print "==== nputs ===="
+        print inputs
         logits = build_model(is_training, inputs, params)
+        print "logits"
+        print logits
         predictions = tf.argmax(logits, 1)
 
     # Define loss and accuracy
+    print "===== labels {}".format(labels)
+    print "====== logits {}".format(logits)
     loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits)
     accuracy = tf.reduce_mean(tf.cast(tf.equal(labels, predictions), tf.float32))
 
@@ -247,11 +276,17 @@ def model_fn(mode, inputs, params, reuse=False):
     #TODO: if mode == 'eval': ?
     # Add incorrectly labeled images
     mask = tf.not_equal(labels, predictions)
+    filenames = tf.string_join([filenames, tf.as_string(tf.equal(labels, predictions))])
+    tf.summary.text('file_summary',filenames)
 
     # Add a different summary to know how they were misclassified
     for label in range(0, params.num_labels):
         mask_label = tf.logical_and(mask, tf.equal(predictions, label))
+        print "label"
+        print mask_label
         incorrect_image_label = tf.boolean_mask(tf.split(inputs['images'], 2, axis=3)[1], mask_label)
+        filenames = tf.string_join([filenames, tf.as_string(mask_label)])
+        #filenames = tf.boolean_mask(filenames, mask_label)
         tf.summary.image('incorrectly_labeled_{}'.format(label), incorrect_image_label)
 
     # -----------------------------------------------------------
