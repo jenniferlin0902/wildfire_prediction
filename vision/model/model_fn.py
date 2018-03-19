@@ -242,17 +242,17 @@ def model_fn(mode, inputs, params, reuse=False):
     # Summaries for training
     tf.summary.scalar('loss', loss)
     tf.summary.scalar('accuracy', accuracy)
-#    tf.summary.image('train_image', tf.split(inputs['images'], 2, axis=3))
+    tf.summary.image('train_image', tf.split(inputs['images'], 2, axis=3)[1])
 
     #TODO: if mode == 'eval': ?
     # Add incorrectly labeled images
-#    mask = tf.not_equal(labels, predictions)
+    mask = tf.not_equal(labels, predictions)
 
     # Add a different summary to know how they were misclassified
- #   for label in range(0, params.num_labels):
-  #      mask_label = tf.logical_and(mask, tf.equal(predictions, label))
-   #     incorrect_image_label = tf.boolean_mask(inputs['images'], mask_label)
-    #    tf.summary.image('incorrectly_labeled_{}'.format(label), incorrect_image_label)
+    for label in range(0, params.num_labels):
+        mask_label = tf.logical_and(mask, tf.equal(predictions, label))
+        incorrect_image_label = tf.boolean_mask(tf.split(inputs['images'], 2, axis=3)[1], mask_label)
+        tf.summary.image('incorrectly_labeled_{}'.format(label), incorrect_image_label)
 
     # -----------------------------------------------------------
     # MODEL SPECIFICATION
