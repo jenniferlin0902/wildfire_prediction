@@ -5,41 +5,74 @@ from vgg16 import Vgg16
 
 VGG_CONFIG = [
     [
-        {"type":"Conv", "size":3, "filters":64},
-        {"type": "Conv", "size": 3, "filters": 64},
-        {"type": "Max", "size": 3},
-    ],
-    [
-        {"type":"Conv", "size":3, "filters":128},
+        {"type":"Conv", "size":3, "filters":32},
+        {"type": "Batchnorm"},
+        {"type": "Relu"},
         {"type": "Max", "size": 2},
     ],
     [
-        {"type": "Conv", "size": 3, "filters": 128},
+        {"type": "Conv", "size": 3, "filters": 32},
+        {"type": "Batchnorm"},
+        {"type": "Relu"},
+        {"type": "Max", "size": 2},
+    ],
+    [
+        {"type": "Conv", "size": 3, "filters": 24},
+        {"type": "Batchnorm"},
+        {"type": "Relu"},
+        {"type": "Max", "size": 2},
+    ],
+    [
+        {"type": "Conv", "size": 3, "filters": 48},
+        {"type": "Batchnorm"},
+        {"type": "Relu"},
         {"type": "Max", "size": 2},
     ],
     [
         {"type": "Flat"},
-        {"type": "Fc", "size": 2048}
+        {"type": "Fc", "size": 128},
+        {"type": "Batchnorm"},
+        {"type": "Relu"},
+        {"type": "Dropout", "p": 0.6},
+    ],
+    [
+        {"type": "Fc", "size": 48},
+        {"type": "Batchnorm"},
+        {"type": "Relu"},
+        {"type": "Dropout", "p": 0.6},
     ],
 ]
 
 # TODO add bn layer to VGG net
 def build_VGG(is_training, inputs, params):
-    network_configs = VGG_CONFIG
+    print "====================== Building VGG custom model ============================="
+    if "conv_model" in params.dict:
+        print "Load conv model from param"
+        network_configs = params.conv_model
+    else:
+        print "Load default conv model"
+        network_configs = VGG_CONFIG
     out = inputs
     for i, block in enumerate(network_configs):
         for j, network in enumerate(block):
             with tf.variable_scope("block_{}".format(i+1)):
                 if network["type"] == "Conv":
                     # use ReLU and xavier_initializer by default
-                    out = tf.contrib.layers.conv2d(out, network["filters"], network["size"], padding='same', scope="network_{}".format(j))
+                    out = tf.layers.conv2d(out, network["filters"],
+                                                   network["size"], padding='same', name="conv_{}".format(j))
                 elif network["type"] == "Max":
                     out = tf.layers.max_pooling2d(out, network["size"], network["size"])
                 elif network["type"] == "Fc":
                     # use relu by default
-                    out = tf.contrib.layers.fully_connected(out, network["size"],scope="network_{}".format(j))
+                    out = tf.layers.dense(out, network["size"], name="fc_{}".format(j))
                 elif network["type"] == "Flat":
                     out = tf.contrib.layers.flatten(out)
+                elif network["type"] == "Dropout":
+                    out = tf.contrib.layers.dropout(out, network["p"])
+                elif network["type"] == "Batchnorm":
+                    out = tf.layers.batch_normalization(out, momentum=params.bn_momentum, training=is_training)
+                elif network["type"] == "Relu":
+                    out = tf.nn.relu(out)
                 else:
                     raise "Invalid NN type arguement"
     return out
@@ -53,7 +86,7 @@ def build_simple(is_training, inputs, params):
     channels = [num_channels, num_channels * 2, num_channels * 4, num_channels * 8]
     for i, c in enumerate(channels):
         with tf.variable_scope('block_{}'.format(i+1)):
-            out = tf.layers.conv2d(out, c, params.kernel_size(), padding='same')
+            out = tf.layers.conv2d(out, c, params.kernel_size, padding='same')
             if params.use_batch_norm:
                 out = tf.layers.batch_normalization(out, momentum=bn_momentum, training=is_training)
             out = tf.nn.relu(out)
@@ -88,35 +121,31 @@ def build_preetrained_VGG(inputs, params):
     out = tf.layers.batch_normalization(out)
 
     # check trainable variables
-    print "INFO : total trainable param = {}".format(calculate_total_trainable())
     return out
 
 # added for case where both ir and rgb
 def build_preetrained_VGG_double(inputs, params):
     inputs1, inputs2 = tf.split(inputs, [3, 3], 3)
 
-    vgg1 = Vgg16(trainable=params.trainable)
+    vgg1 = Vgg16(trainable=params.trainable, scope="vgg_rgb")
     out1 = vgg1.build(inputs1)
     out1 = tf.contrib.layers.flatten(out1, scope="flatten_1")
-    out1 = tf.contrib.layers.fully_connected(out1, 512)
+    out1 = tf.contrib.layers.fully_connected(out1, 256)
     out1 = tf.layers.batch_normalization(out1)
 
-    vgg2 = Vgg16(trainable=params.trainable)
+    vgg2 = Vgg16(trainable=params.trainable, scope="vgg_ir")
     out2 = vgg2.build(inputs2)
     out2 = tf.contrib.layers.flatten(out2, scope="flatten_2")
-    out2 = tf.contrib.layers.fully_connected(out2, 512)
+    out2 = tf.contrib.layers.fully_connected(out2, 256)
     out2 = tf.layers.batch_normalization(out2)
 
     # combining together
-    out1 = tf.contrib.layers.flatten(out1, scope="flatten_3")
-    out2 = tf.contrib.layers.flatten(out2, scope="flatten_4")
     out = tf.concat([out1, out2], axis=1)
 
-    out = tf.contrib.layers.fully_connected(out, 1024)
+    out = tf.contrib.layers.fully_connected(out, 512)
     out = tf.layers.batch_normalization(out)
 
     # check trainable variables
-    print "INFO : total trainable param = {}".format(calculate_total_trainable())
     return out
 
 
@@ -149,6 +178,7 @@ def build_model(is_training, inputs, params):
     with tf.variable_scope('output'):
         logits = tf.layers.dense(out, params.num_labels)
 
+    print "INFO : total trainable param = {}".format(calculate_total_trainable())
     return logits
 
 
@@ -168,6 +198,7 @@ def model_fn(mode, inputs, params, reuse=False):
     is_training = (mode == 'train')
     labels = inputs['labels']
     labels = tf.cast(labels, tf.int64)
+    print "label dim = {}".format(labels.get_shape().as_list())
 
     # -----------------------------------------------------------
     # MODEL: define the layers of the model
@@ -211,7 +242,7 @@ def model_fn(mode, inputs, params, reuse=False):
     # Summaries for training
     tf.summary.scalar('loss', loss)
     tf.summary.scalar('accuracy', accuracy)
-    tf.summary.image('train_image', inputs['images'])
+    tf.summary.image('train_image', tf.split(inputs['images'], 2, axis=3)[1])
 
     #TODO: if mode == 'eval': ?
     # Add incorrectly labeled images
@@ -220,7 +251,7 @@ def model_fn(mode, inputs, params, reuse=False):
     # Add a different summary to know how they were misclassified
     for label in range(0, params.num_labels):
         mask_label = tf.logical_and(mask, tf.equal(predictions, label))
-        incorrect_image_label = tf.boolean_mask(inputs['images'], mask_label)
+        incorrect_image_label = tf.boolean_mask(tf.split(inputs['images'], 2, axis=3)[1], mask_label)
         tf.summary.image('incorrectly_labeled_{}'.format(label), incorrect_image_label)
 
     # -----------------------------------------------------------
