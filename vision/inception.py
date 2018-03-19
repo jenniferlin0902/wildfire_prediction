@@ -18,7 +18,7 @@ from keras.layers import Dense, GlobalAveragePooling2D
 from keras import backend as K
 import numpy as np
 from keras.callbacks import CSVLogger
-from keras.callbacks import TensorBoard
+#from keras.callbacks import TensorBoard
 from time import time
 
 # for trial and error
@@ -55,9 +55,9 @@ def inception(train_data, train_labels, eval_data, eval_labels, test_data, test_
 	print train_labels.shape
 
 	csv_logger = CSVLogger(LOG_FILE, append=True, separator=';')
-	tensorboard = TensorBoard(log_dir="logs/{}".format(time()))
+	#tensorboard = TensorBoard(log_dir="logs/{}".format(time()))
 	temp = model.fit(train_data, train_labels, validation_data=(eval_data, eval_labels), epochs=EPOCHS, 
-					batch_size=BATCH_SIZE, callbacks=[csv_logger, tensorboard])
+					batch_size=BATCH_SIZE, callbacks=[csv_logger])
 	print temp
 
 	score = model.evaluate(test_data, test_labels, batch_size=BATCH_SIZE)
