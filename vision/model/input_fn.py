@@ -30,10 +30,10 @@ def _parse_function(filename, label, params):
 
     # concat all channels
     concat_images = tf.concat(images, axis=2)
-    return concat_images, label
+    return concat_images, label, filename
 
 #This is currently not use
-def train_preprocess(image, labels, use_random_flip):
+def train_preprocess(image, labels, filename, use_random_flip):
 #     """Image preprocessing for training.
 #
 #     Apply the following operations:
@@ -53,7 +53,7 @@ def train_preprocess(image, labels, use_random_flip):
      image_ir = tf.clip_by_value(image_ir, 0.0, 1.9)
 #     #print image
      image = tf.concat([image_rgb, image_ir], axis=2)
-     return image, labels
+     return image, labels, filename
 
 
 def input_fn(is_training, filenames, labels, params):
@@ -73,7 +73,7 @@ def input_fn(is_training, filenames, labels, params):
     # Create a Dataset serving batches of images and labels
     # We don't repeat for multiple epochs because we always train and evaluate for one epoch
     parse_fn = lambda f, l: _parse_function(f, l, params)
-    train_fn = lambda f, l: train_preprocess(f,l, params.use_random_flip)
+    train_fn = lambda i, l, f: train_preprocess(i,l,f, params.use_random_flip)
 
     if is_training:
         dataset = (tf.data.Dataset.from_tensor_slices((tf.constant(filenames), tf.constant(labels)))
@@ -92,8 +92,8 @@ def input_fn(is_training, filenames, labels, params):
 
     # Create reinitializable iterator from dataset
     iterator = dataset.make_initializable_iterator()
-    images, labels = iterator.get_next()
+    images, labels, filename = iterator.get_next()
     iterator_init_op = iterator.initializer
 
-    inputs = {'images': images, 'labels': labels, 'iterator_init_op': iterator_init_op}
+    inputs = {'images': images, 'labels': labels, 'iterator_init_op': iterator_init_op, 'filenames':filename}
     return inputs
