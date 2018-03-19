@@ -41,7 +41,8 @@ def evaluate_sess(sess, model_spec, num_steps, writer=None, params=None):
     if writer is not None:
         global_step_val = sess.run(global_step)
         for tag, val in metrics_val.items():
-            summ = tf.Summary(value=[tf.Summary.Value(tag=tag, simple_value=val)])
+            #summ = tf.Summary(value=[tf.Summary.Value(tag=tag, simple_value=val)])
+            summ = sess.run(model_spec['summary_op'])
             writer.add_summary(summ, global_step_val)
 
     return metrics_val
@@ -72,7 +73,8 @@ def evaluate(model_spec, model_dir, params, restore_from):
 
         # Evaluate
         num_steps = (params.eval_size + params.batch_size - 1) // params.batch_size
-        metrics = evaluate_sess(sess, model_spec, num_steps)
+        test_writer = tf.summary.FileWriter(os.path.join(model_dir, 'test_summaries'), sess.graph)
+        metrics = evaluate_sess(sess, model_spec, num_steps, test_writer)
         metrics_name = '_'.join(restore_from.split('/'))
         save_path = os.path.join(model_dir, "metrics_test_{}.json".format(metrics_name))
         save_dict_to_json(metrics, save_path)

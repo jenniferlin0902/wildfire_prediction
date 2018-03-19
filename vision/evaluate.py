@@ -55,6 +55,5 @@ if __name__ == '__main__':
     # Define the model
     logging.info("Creating the model...")
     model_spec = model_fn('eval', test_inputs, params, reuse=False)
-
     logging.info("Starting evaluation")
     evaluate(model_spec, args.model_dir, params, args.restore_from)
