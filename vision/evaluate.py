@@ -41,8 +41,8 @@ if __name__ == '__main__':
     test_data_dir = os.path.join(data_dir, "test_images")
 
     # Get the filenames from the test set
-    test_filenames = os.listdir(test_data_dir)
-    test_filenames = [os.path.join(test_data_dir, f) for f in test_filenames if f.endswith('.jpg')]
+    test_filenames = [os.path.join(test_data_dir, f.strip("_rgb.jpg")) for f in os.listdir(test_data_dir)
+                       if f.endswith('_rgb.jpg')]
 
     test_labels = [is_fire(os.path.basename(f)) for f in test_filenames]
 
