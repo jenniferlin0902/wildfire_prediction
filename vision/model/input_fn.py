@@ -33,7 +33,7 @@ def _parse_function(filename, label, params):
     return concat_images, label
 
 #This is currently not use
-# def train_preprocess(image, labels, use_random_flip):
+def train_preprocess(image, labels, use_random_flip):
 #     """Image preprocessing for training.
 #
 #     Apply the following operations:
@@ -42,14 +42,18 @@ def _parse_function(filename, label, params):
 #     """
 #     if use_random_flip:
 #         image = tf.image.random_flip_left_right(image)
-#
-#     image = tf.image.random_brightness(image, max_delta=32.0 / 255.0)
-#     image = tf.image.random_saturation(image, lower=0.5, upper=1.5)
-#
-#     # Make sure the image is still in [0, 1]
-#     image = tf.clip_by_value(image, 0.0, 1.0)
+     assert image.get_shape().as_list()[2] == 6
+     image_rgb, image_ir = tf.split(image, 2, axis=2)
+     image_rgb = tf.image.random_brightness(image_rgb, max_delta=32.0 / 255.0)
+     image_ir = tf.image.random_brightness(image_ir, max_delta=32.0 / 255.0)
+     image_rgb = tf.image.random_saturation(image_rgb, lower=0.5, upper=1.5)
+     image_ir = tf.image.random_saturation(image_ir, lower=0.5, upper=1.5)
+#      # Make sure the image is still in [0, 1]
+     image_rgb = tf.clip_by_value(image_rgb, 0.0, 1.0)
+     image_ir = tf.clip_by_value(image_ir, 0.0, 1.9)
 #     #print image
-#     return image, labels
+     image = tf.concat([image_rgb, image_ir], axis=2)
+     return image, labels
 
 
 def input_fn(is_training, filenames, labels, params):
@@ -69,13 +73,13 @@ def input_fn(is_training, filenames, labels, params):
     # Create a Dataset serving batches of images and labels
     # We don't repeat for multiple epochs because we always train and evaluate for one epoch
     parse_fn = lambda f, l: _parse_function(f, l, params)
-#    train_fn = lambda f, l: train_preprocess(f,l, params.use_random_flip)
+    train_fn = lambda f, l: train_preprocess(f,l, params.use_random_flip)
 
     if is_training:
         dataset = (tf.data.Dataset.from_tensor_slices((tf.constant(filenames), tf.constant(labels)))
             .shuffle(num_samples)  # whole dataset into the buffer ensures good shuffling
             .map(parse_fn, num_parallel_calls=params.num_parallel_calls)
-            #.map(train_fn, num_parallel_calls=params.num_parallel_calls)
+            .map(train_fn, num_parallel_calls=params.num_parallel_calls)
             .batch(params.batch_size)
             .prefetch(1)  # make sure you always have one batch ready to serve
         )
