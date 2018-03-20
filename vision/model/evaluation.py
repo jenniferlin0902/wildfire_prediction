@@ -21,7 +21,6 @@ def evaluate_sess(sess, model_spec, num_steps, writer=None, params=None):
     """
     update_metrics = model_spec['update_metrics']
     eval_metrics = model_spec['metrics']
-    global_step = tf.train.get_global_step()
 
     # Load the evaluation dataset into the pipeline and initialize the metrics init op
     sess.run(model_spec['iterator_init_op'])
@@ -29,11 +28,11 @@ def evaluate_sess(sess, model_spec, num_steps, writer=None, params=None):
 
     # compute metrics over the dataset
     for s in range(num_steps):
-        _, summ  = sess.run([update_metrics, model_spec["summary_op"]])
-        writer.add_summary(summ, s)
+        _ = sess.run(update_metrics)
+        #writer.add_summary(summ, s)
     # Get the values of the metrics
     metrics_values = {k: v[0] for k, v in eval_metrics.items()}
-    metrics_val, summ  = sess.run([metrics_values, model_spec['summary_op']])
+    metrics_val = sess.run(metrics_values)
     metrics_string = " ; ".join("{}: {:05.3f}".format(k, v) for k, v in metrics_val.items())
     logging.info("- Eval metrics: " + metrics_string)
 
