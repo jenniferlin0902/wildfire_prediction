@@ -54,6 +54,7 @@ def build_VGG(is_training, inputs, params):
         print "Load default conv model"
         network_configs = VGG_CONFIG
     out = inputs
+    layers = []
     for i, block in enumerate(network_configs):
         for j, network in enumerate(block):
             with tf.variable_scope("block_{}".format(i+1)):
@@ -76,7 +77,8 @@ def build_VGG(is_training, inputs, params):
                     out = tf.nn.relu(out)
                 else:
                     raise "Invalid NN type arguement"
-    return out
+                layers.append(out)
+    return out, layers
 
 def build_simple(is_training, inputs, params):
     num_channels = params.num_channels
@@ -127,7 +129,6 @@ def build_preetrained_VGG(inputs, params):
 # added for case where both ir and rgb
 def build_preetrained_VGG_double(inputs, params):
     inputs1, inputs2 = tf.split(inputs, [3, 3], 3)
-
     vgg1 = Vgg16(trainable=params.trainable, scope="vgg_rgb")
     out1 = vgg1.build(inputs1)
     out1 = tf.contrib.layers.flatten(out1, scope="flatten_1")
@@ -163,11 +164,12 @@ def build_model(is_training, inputs, params):
         output: (tf.Tensor) output of the model
     """
     images = inputs['images']
+    layers = None
     print images.get_shape().as_list()
     assert images.get_shape().as_list() == [None, params.image_size, params.image_size, params.num_channels]
 
     if params.model == "vgg_simple":
-        out = build_VGG(is_training, images, params)
+        out, layers = build_VGG(is_training, images, params)
     elif (params.model == "vgg_pretrain" and params.num_channels == 3):
         out = build_preetrained_VGG(images, params)
     elif (params.model == "vgg_pretrain" and params.num_channels == 6):
@@ -181,22 +183,18 @@ def build_model(is_training, inputs, params):
 
     print "INFO : total trainable param = {}".format(calculate_total_trainable())
     print logits
-    return logits
+    return logits, layers
 
 
-#def getActivations(layer,stimuli):
-#    units = sess.run(layer,feed_dict={x:np.reshape(stimuli,[1,784],order='F'),keep_prob:1.0})
-#    plotNNFilter(units)
-
-#def plotNNFilter(units):
-#    filters = units.shape[3]
-#    plt.figure(1, figsize=(20,20))
-#    n_columns = 6
-#    n_rows = math.ceil(filters / n_columns) + 1
-#    for i in range(filters):
-#        plt.subplot(n_rows, n_columns, i+1)
-#        plt.title('Filter ' + str(i))
-#        plt.imshow(units[0,:,:,i], interpolation="nearest", cmap="gray")
+def plotNNFilter(units):
+    filters = units.shape[3]
+    plt.figure(1, figsize=(20,20))
+    n_columns = 6
+    n_rows = math.ceil(filters / n_columns) + 1
+    for i in range(filters):
+        plt.subplot(n_rows, n_columns, i+1)
+        plt.title('Filter ' + str(i))
+        plt.imshow(units[0,:,:,i], interpolation="nearest", cmap="gray")
 
 
 def model_fn(mode, inputs, params, reuse=False):
@@ -214,29 +212,18 @@ def model_fn(mode, inputs, params, reuse=False):
     """
     is_training = (mode == 'train')
     labels = inputs['labels']
-    print "labels before cast {}".format(labels)
-
     filenames = inputs['filenames']
     labels = tf.cast(labels, tf.int64)
     filenames = tf.cast(filenames, tf.string)
-    print "label dim = {}".format(labels.get_shape().as_list())
-    print "jus got label, after cast"
-    print filenames
-    print labels
     # -----------------------------------------------------------
     # MODEL: define the layers of the model
     with tf.variable_scope('model', reuse=reuse):
         # Compute the output distribution of the model and the predictions
-        print "==== nputs ===="
         print inputs
-        logits = build_model(is_training, inputs, params)
-        print "logits"
-        print logits
+        logits, layers = build_model(is_training, inputs, params)
         predictions = tf.argmax(logits, 1)
 
     # Define loss and accuracy
-    print "===== labels {}".format(labels)
-    print "====== logits {}".format(logits)
     loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits)
     accuracy = tf.reduce_mean(tf.cast(tf.equal(labels, predictions), tf.float32))
 
@@ -302,6 +289,7 @@ def model_fn(mode, inputs, params, reuse=False):
     model_spec['metrics'] = metrics
     model_spec['update_metrics'] = update_metrics_op
     model_spec['summary_op'] = tf.summary.merge_all()
+    model_spec['layer_activation'] = layers
 
     if is_training:
         model_spec['train_op'] = train_op
