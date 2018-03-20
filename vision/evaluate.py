@@ -41,9 +41,12 @@ if __name__ == '__main__':
     test_data_dir = os.path.join(data_dir, "test_images")
 
     # Get the filenames from the test set
-    test_filenames = [os.path.join(test_data_dir, f.strip("_rgb.jpg")) for f in os.listdir(test_data_dir)
-                       if f.endswith('_rgb.jpg')]
-
+    #test_filenames = [os.path.join(test_data_dir, f.strip("_rgb.jpg")) for f in os.listdir(test_data_dir)
+    #                   if f.endswith('_rgb.jpg')]
+    act_filenames = [
+        "LC08_L1TP_047026_20170822_20170912_01_T1_7_1“
+    ]
+    test_filenames = [os.path.join(test_data_dir, fname) for fname in act_filenames]
     test_labels = [is_fire(os.path.basename(f)) for f in test_filenames]
 
     # specify the size of the evaluation set

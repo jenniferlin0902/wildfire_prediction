@@ -3,6 +3,8 @@
 import logging
 import os
 
+import json
+import numpy as np
 from tqdm import trange
 import tensorflow as tf
 
@@ -28,12 +30,26 @@ def evaluate_sess(sess, model_spec, num_steps, writer=None, params=None):
     sess.run(model_spec['metrics_init_op'])
 
     # compute metrics over the dataset
-    for s in range(num_steps):
-        _, summ  = sess.run([update_metrics, model_spec["summary_op"]])
-        writer.add_summary(summ, s)
-    # Get the values of the metrics
+    try:
+        for s in range(num_steps):
+            _, layers_act  = sess.run([update_metrics, model_spec["layer_activation"]])
+            #writer.add_summary(summ, s)
+            with open("save_activation{}.json".format(s), 'wb') as f:
+                dict = {}
+                for l, activation in enumerate(layers_act):
+                    dict[l] =  activation.tolist()
+                json.dump(dict, f)
+
+        # Get the values of the metrics
+    except:
+        with open("save_activation{}.json".format(s), 'wb') as f:
+            dict = {}
+            for l, activation in enumerate(layers_act):
+                dict[l] = activation.tolist()
+            json.dump(dict, f)
+
     metrics_values = {k: v[0] for k, v in eval_metrics.items()}
-    metrics_val, summ  = sess.run([metrics_values, model_spec['summary_op']])
+    metrics_val = sess.run(metrics_values)
     metrics_string = " ; ".join("{}: {:05.3f}".format(k, v) for k, v in metrics_val.items())
     logging.info("- Eval metrics: " + metrics_string)
 
