@@ -1,2 +1,4 @@
 # wildfire_prediction
-CS230 final project
+Stanford CS230 final project
+
+This repostiroy contains all necessary scripts, tensorflow and kera projects to classify whether an input statellite image contains a wildfire instance. 
